@@ -35,6 +35,18 @@ export function useAccounts() {
     [db],
   );
 
+  const update = useCallback(
+    async (id: number, data: { name: string; balance: number }): Promise<void> => {
+      await db.runAsync(
+        'UPDATE accounts SET name = ?, balance = ? WHERE id = ?',
+        data.name,
+        data.balance,
+        id,
+      );
+    },
+    [db],
+  );
+
   const remove = useCallback(async (id: number): Promise<void> => {
     await db.runAsync('DELETE FROM accounts WHERE id = ?', id);
   }, [db]);
@@ -44,5 +56,5 @@ export function useAccounts() {
     return result?.total ?? 0;
   }, [db]);
 
-  return { list, getById, create, updateBalance, remove, totalBalance };
+  return { list, getById, create, update, updateBalance, remove, totalBalance };
 }

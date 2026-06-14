@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AmountDisplay } from '@/components/amount-display';
@@ -49,7 +50,16 @@ export default function AccountDetailScreen() {
       <Stack.Screen options={{ title: account.name }} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card elevated style={styles.headerCard}>
-          <ThemedText style={styles.icon}>{account.icon}</ThemedText>
+          <View style={styles.headerIconRow}>
+            <ThemedText style={styles.icon}>{account.icon}</ThemedText>
+            <Pressable onPress={() => router.push(`/edit-account/${account.id}`)}>
+              <SymbolView
+                name={{ ios: "pencil", android: "edit" }}
+                tintColor={theme.textSecondary}
+                size={16}
+              />
+            </Pressable>
+          </View>
           <ThemedText type="small" style={[styles.type, { color: theme.textSecondary }]}>
             {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
           </ThemedText>
@@ -91,6 +101,11 @@ const styles = StyleSheet.create({
   headerCard: {
     alignItems: 'center',
     paddingVertical: Spacing.xxl,
+    gap: Spacing.sm,
+  },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
   },
   icon: { fontSize: 40 },
