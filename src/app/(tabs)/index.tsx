@@ -10,6 +10,7 @@ import { GoalCard } from '@/components/goal-card';
 import { TransactionItem } from '@/components/transaction-item';
 import { Card } from '@/components/card';
 import { SectionHeader } from '@/components/section-header';
+import { Header } from '@/components/header';
 import { Spacing, BottomTabInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -39,6 +40,7 @@ export default function DashboardScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <Header />
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: BottomTabInset + Spacing.three }]}
       >

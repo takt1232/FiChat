@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import { AccountCard } from '@/components/account-card';
 import { SectionHeader } from '@/components/section-header';
 import { Card } from '@/components/card';
+import { Header } from '@/components/header';
 import { Spacing, BottomTabInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -27,12 +28,10 @@ export default function AccountsScreen() {
 
   return (
     <ThemedView style={styles.screen}>
+      <Header />
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: BottomTabInset + Spacing.three }]}
       >
-        <View style={styles.header}>
-          <ThemedText type="title">Accounts</ThemedText>
-        </View>
 
         {accounts.length > 0 && (
           <Card elevated style={styles.summaryCard}>
@@ -77,9 +76,6 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     gap: Spacing.three,
     paddingTop: Spacing.four,
-  },
-  header: {
-    paddingTop: Spacing.sm,
   },
   summaryCard: {
     alignItems: 'center',
