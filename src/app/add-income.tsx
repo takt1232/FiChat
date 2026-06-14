@@ -1,10 +1,24 @@
 import { useState, useCallback } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+import DateTimePicker, {
+  DateTimePickerChangeEvent,
+} from '@react-native-community/datetimepicker';
 import { router, Stack } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Card } from '@/components/card';
+import { PickerModal, PickerOption } from '@/components/picker-modal';
 import { Spacing, Radii } from '@/constants/theme';
+import { formatDate } from '@/constants/format';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -19,31 +33,50 @@ export default function AddIncomeScreen() {
 
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(new Date());
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [toAccountId, setToAccountId] = useState<number | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<
+    'category' | 'toAccount' | null
+  >(null);
 
   useState(() => {
     listAccounts().then(setAccounts);
     listCategories().then(setCategories);
   });
 
+  const handleDateChange = useCallback(
+    (_: DateTimePickerChangeEvent, selected: Date) => {
+      setShowDatePicker(Platform.OS === 'ios');
+      setDate(selected);
+    },
+    [],
+  );
+
   const handleSave = useCallback(async () => {
     const parsed = parseFloat(amount);
-    if (!parsed || parsed <= 0) return;
-    if (!toAccountId) return;
+    if (!parsed || parsed <= 0) {
+      Alert.alert('Invalid amount');
+      return;
+    }
+    if (!toAccountId) {
+      Alert.alert('Please select an account');
+      return;
+    }
 
     setSaving(true);
     try {
+      const dateStr = date.toISOString().split('T')[0];
       await create({
         type: 'income',
         amount: parsed,
         category_id: categoryId,
         note,
-        date,
+        date: dateStr,
         to_account_id: toAccountId,
       });
       router.back();
@@ -54,110 +87,140 @@ export default function AddIncomeScreen() {
 
   const incomeCategories = categories.filter((c) => c.type === 'income');
 
+  const categoryOptions: PickerOption[] = incomeCategories.map((c) => ({
+    id: c.id,
+    label: c.name,
+    icon: c.icon,
+    color: c.color,
+  }));
+
+  const accountOptions: PickerOption[] = accounts.map((a) => ({
+    id: a.id,
+    label: a.name,
+    icon: a.icon,
+    color: a.color,
+  }));
+
   return (
     <ThemedView style={styles.screen}>
       <Stack.Screen options={{ title: 'Add Income' }} />
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Card style={styles.amountCard}>
-          <TextInput
-            style={[styles.amountInput, { color: theme.text }]}
-            placeholder="0.00"
-            placeholderTextColor={theme.textTertiary}
-            keyboardType="decimal-pad"
-            value={amount}
-            onChangeText={setAmount}
-            autoFocus
-          />
-          <ThemedText type="hero" style={[styles.currencySign, { color: theme.textTertiary }]}>₱</ThemedText>
-        </Card>
-
-        {incomeCategories.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-              CATEGORY
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Card style={styles.amountCard}>
+            <TextInput
+              style={[styles.amountInput, { color: theme.text }]}
+              placeholder="0.00"
+              placeholderTextColor={theme.textTertiary}
+              keyboardType="decimal-pad"
+              value={amount}
+              onChangeText={setAmount}
+              autoFocus
+            />
+            <ThemedText
+              type="hero"
+              style={[styles.currencySign, { color: theme.textTertiary }]}
+            >
+              ₱
             </ThemedText>
-            <View style={styles.chipRow}>
-              {incomeCategories.map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  onPress={() => setCategoryId(categoryId === cat.id ? null : cat.id)}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: categoryId === cat.id ? cat.color : theme.border,
-                    },
-                  ]}
-                >
-                  <ThemedText type="small">
-                    {cat.icon} {cat.name}
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        )}
+          </Card>
 
-        <View style={styles.section}>
-          <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-            TO ACCOUNT
-          </ThemedText>
-          <View style={styles.chipRow}>
-            {accounts.map((acc) => (
-              <Pressable
-                key={acc.id}
-                onPress={() => setToAccountId(toAccountId === acc.id ? null : acc.id)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: toAccountId === acc.id ? acc.color : theme.border,
-                  },
-                ]}
-              >
-                <ThemedText type="small">{acc.icon} {acc.name}</ThemedText>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+          <Pressable
+            onPress={() => setPickerTarget('category')}
+            style={[styles.pickerBtn, { backgroundColor: theme.border }]}
+          >
+            <ThemedText
+              style={{
+                color: categoryId ? theme.text : theme.textTertiary,
+              }}
+            >
+              {categoryId
+                ? `${incomeCategories.find((c) => c.id === categoryId)?.icon} ${incomeCategories.find((c) => c.id === categoryId)?.name}`
+                : 'Select category'}
+            </ThemedText>
+          </Pressable>
 
-        <View style={styles.section}>
-          <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-            NOTE
-          </ThemedText>
+          <Pressable
+            onPress={() => setPickerTarget('toAccount')}
+            style={[styles.pickerBtn, { backgroundColor: theme.border }]}
+          >
+            <ThemedText
+              style={{
+                color: toAccountId ? theme.text : theme.textTertiary,
+              }}
+            >
+              {toAccountId
+                ? `${accounts.find((a) => a.id === toAccountId)?.icon} ${accounts.find((a) => a.id === toAccountId)?.name}`
+                : 'Select account'}
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setShowDatePicker(true)}
+            style={[styles.pickerBtn, { backgroundColor: theme.border }]}
+          >
+            <ThemedText>
+              {formatDate(date.toISOString().split('T')[0])}
+            </ThemedText>
+          </Pressable>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onValueChange={handleDateChange}
+            />
+          )}
+
           <TextInput
-            style={[styles.textInput, { backgroundColor: theme.border, color: theme.text }]}
+            style={[
+              styles.textInput,
+              { backgroundColor: theme.border, color: theme.text },
+            ]}
             placeholder="Add a note..."
             placeholderTextColor={theme.textTertiary}
             value={note}
             onChangeText={setNote}
+            multiline
           />
-        </View>
 
-        <View style={styles.section}>
-          <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-            DATE
-          </ThemedText>
-          <TextInput
-            style={[styles.textInput, { backgroundColor: theme.border, color: theme.text }]}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={theme.textTertiary}
-            value={date}
-            onChangeText={setDate}
-          />
-        </View>
+          <Pressable
+            onPress={handleSave}
+            disabled={saving}
+            style={[
+              styles.saveBtn,
+              { backgroundColor: theme.accent, opacity: saving ? 0.5 : 1 },
+            ]}
+          >
+            <ThemedText type="smallBold" style={styles.saveText}>
+              {saving ? 'Saving...' : 'Save Income'}
+            </ThemedText>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-        <Pressable
-          onPress={handleSave}
-          disabled={saving}
-          style={[
-            styles.saveBtn,
-            { backgroundColor: theme.accent, opacity: saving ? 0.5 : 1 },
-          ]}
-        >
-          <ThemedText type="smallBold" style={styles.saveText}>
-            {saving ? 'Saving...' : 'Save Income'}
-          </ThemedText>
-        </Pressable>
-      </ScrollView>
+      <PickerModal
+        visible={pickerTarget === 'category'}
+        title="Select Category"
+        options={categoryOptions}
+        selectedId={categoryId}
+        onSelect={setCategoryId}
+        onClose={() => setPickerTarget(null)}
+      />
+      <PickerModal
+        visible={pickerTarget === 'toAccount'}
+        title="Select Account"
+        options={accountOptions}
+        selectedId={toAccountId}
+        onSelect={setToAccountId}
+        onClose={() => setPickerTarget(null)}
+      />
     </ThemedView>
   );
 }
@@ -186,33 +249,21 @@ const styles = StyleSheet.create({
   currencySign: {
     fontSize: 28,
   },
-  section: {
-    gap: Spacing.sm,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.button,
+  pickerBtn: {
+    padding: Spacing.lg,
+    borderRadius: Radii.input,
   },
   textInput: {
     fontSize: 15,
     padding: Spacing.lg,
     borderRadius: Radii.input,
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   saveBtn: {
     paddingVertical: Spacing.lg,
     borderRadius: Radii.button,
     alignItems: 'center',
-    marginTop: Spacing.sm,
   },
   saveText: {
     color: '#FFFFFF',

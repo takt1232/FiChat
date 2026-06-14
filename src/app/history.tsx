@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { TransactionItem } from '@/components/transaction-item';
@@ -48,7 +48,11 @@ export default function HistoryScreen() {
                 <SectionHeader label={date} />
                 <View style={styles.txList}>
                   {txs.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} />
+                    <TransactionItem
+                      key={tx.id}
+                      transaction={tx}
+                      onPress={() => router.push(`/edit-transaction/${tx.id}`)}
+                    />
                   ))}
                 </View>
               </View>

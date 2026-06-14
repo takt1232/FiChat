@@ -12,7 +12,7 @@ import {
 import DateTimePicker, {
   DateTimePickerChangeEvent,
 } from '@react-native-community/datetimepicker';
-import { router } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Card } from '@/components/card';
@@ -21,23 +21,18 @@ import { Spacing, Radii } from '@/constants/theme';
 import { formatDate } from '@/constants/format';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
-import { useTransactions } from '@/hooks/use-transactions';
 import { useCategories } from '@/hooks/use-categories';
-import { Account, Category, TransactionType } from '@/types';
+import { useTransactions, TransactionRow } from '@/hooks/use-transactions';
+import { Account, Category } from '@/types';
 
-const TX_TYPES: { key: TransactionType; label: string }[] = [
-  { key: 'expense', label: 'Expense' },
-  { key: 'income', label: 'Income' },
-  { key: 'transfer', label: 'Transfer' },
-];
-
-export default function AddTransactionScreen() {
+export default function EditTransactionScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
-  const { create } = useTransactions();
+  const { getById, update, remove } = useTransactions();
   const { list: listAccounts } = useAccounts();
   const { list: listCategories } = useCategories();
 
-  const [type, setType] = useState<TransactionType>('expense');
+  const [tx, setTx] = useState<TransactionRow | null>(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
@@ -52,10 +47,27 @@ export default function AddTransactionScreen() {
     'category' | 'fromAccount' | 'toAccount' | null
   >(null);
 
-  useState(() => {
-    listAccounts().then(setAccounts);
-    listCategories().then(setCategories);
-  });
+  useFocusEffect(
+    useCallback(() => {
+      const txId = parseInt(id, 10);
+      Promise.all([
+        getById(txId),
+        listAccounts(),
+        listCategories(),
+      ]).then(([transaction, accs, cats]) => {
+        if (!transaction) return;
+        setTx(transaction);
+        setAmount(transaction.amount.toString());
+        setNote(transaction.note ?? '');
+        setDate(new Date(transaction.date + 'T00:00:00'));
+        setCategoryId(transaction.category_id);
+        setFromAccountId(transaction.from_account_id);
+        setToAccountId(transaction.to_account_id);
+        setAccounts(accs);
+        setCategories(cats);
+      });
+    }, [id, getById, listAccounts, listCategories]),
+  );
 
   const handleDateChange = useCallback(
     (_: DateTimePickerChangeEvent, selected: Date) => {
@@ -71,15 +83,15 @@ export default function AddTransactionScreen() {
       Alert.alert('Invalid amount');
       return;
     }
-    if (type === 'income' && !toAccountId) {
+    if (tx?.type === 'income' && !toAccountId) {
       Alert.alert('Please select an account');
       return;
     }
-    if (type === 'expense' && !fromAccountId) {
+    if (tx?.type === 'expense' && !fromAccountId) {
       Alert.alert('Please select an account');
       return;
     }
-    if (type === 'transfer' && (!fromAccountId || !toAccountId)) {
+    if (tx?.type === 'transfer' && (!fromAccountId || !toAccountId)) {
       Alert.alert('Please select both accounts');
       return;
     }
@@ -87,29 +99,47 @@ export default function AddTransactionScreen() {
     setSaving(true);
     try {
       const dateStr = date.toISOString().split('T')[0];
-      await create({
-        type,
+      await update(parseInt(id, 10), {
         amount: parsed,
         category_id: categoryId,
         note,
         date: dateStr,
-        from_account_id: type === 'expense' ? fromAccountId : type === 'transfer' ? fromAccountId : null,
-        to_account_id: type === 'income' ? toAccountId : type === 'transfer' ? toAccountId : null,
+        from_account_id: fromAccountId,
+        to_account_id: toAccountId,
       });
       router.back();
     } finally {
       setSaving(false);
     }
-  }, [amount, type, date, fromAccountId, toAccountId, categoryId, note, create]);
+  }, [amount, tx, toAccountId, fromAccountId, categoryId, note, date, id, update]);
 
-  const filteredCategories = categories.filter((c) => c.type === (type === 'transfer' ? 'expense' : type));
+  const handleDelete = useCallback(() => {
+    Alert.alert(
+      'Delete Transaction',
+      'Are you sure? This will also adjust the account balance.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await remove(parseInt(id, 10));
+            router.back();
+          },
+        },
+      ],
+    );
+  }, [id, remove]);
 
-  const categoryOptions: PickerOption[] = filteredCategories.map((c) => ({
-    id: c.id,
-    label: c.name,
-    icon: c.icon,
-    color: c.color,
-  }));
+  if (!tx) return null;
+
+  const isExpense = tx.type === 'expense';
+  const isIncome = tx.type === 'income';
+  const isTransfer = tx.type === 'transfer';
+
+  const categoryOptions: PickerOption[] = categories
+    .filter((c) => c.type === (isTransfer ? 'expense' : tx.type))
+    .map((c) => ({ id: c.id, label: c.name, icon: c.icon, color: c.color }));
 
   const accountOptions: PickerOption[] = accounts.map((a) => ({
     id: a.id,
@@ -118,12 +148,9 @@ export default function AddTransactionScreen() {
     color: a.color,
   }));
 
-  const isExpense = type === 'expense';
-  const isIncome = type === 'income';
-  const isTransfer = type === 'transfer';
-
   return (
     <ThemedView style={styles.screen}>
+      <Stack.Screen options={{ title: 'Edit Transaction' }} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -132,34 +159,6 @@ export default function AddTransactionScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.typeRow}>
-            {TX_TYPES.map((t) => (
-              <Pressable
-                key={t.key}
-                onPress={() => {
-                  setType(t.key);
-                  setCategoryId(null);
-                }}
-                style={[
-                  styles.typeBtn,
-                  {
-                    backgroundColor:
-                      type === t.key ? theme.accent : theme.border,
-                  },
-                ]}
-              >
-                <ThemedText
-                  type="smallBold"
-                  style={{
-                    color: type === t.key ? '#fff' : theme.textSecondary,
-                  }}
-                >
-                  {t.label}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </View>
-
           <Card style={styles.amountCard}>
             <TextInput
               style={[styles.amountInput, { color: theme.text }]}
@@ -185,11 +184,13 @@ export default function AddTransactionScreen() {
             >
               <ThemedText
                 style={{
-                  color: categoryId ? theme.text : theme.textTertiary,
+                  color: categoryId
+                    ? theme.text
+                    : theme.textTertiary,
                 }}
               >
                 {categoryId
-                  ? `${filteredCategories.find((c) => c.id === categoryId)?.icon} ${filteredCategories.find((c) => c.id === categoryId)?.name}`
+                  ? `${categories.find((c) => c.id === categoryId)?.icon} ${categories.find((c) => c.id === categoryId)?.name}`
                   : 'Select category'}
               </ThemedText>
             </Pressable>
@@ -202,7 +203,9 @@ export default function AddTransactionScreen() {
             >
               <ThemedText
                 style={{
-                  color: fromAccountId ? theme.text : theme.textTertiary,
+                  color: fromAccountId
+                    ? theme.text
+                    : theme.textTertiary,
                 }}
               >
                 {fromAccountId
@@ -219,7 +222,9 @@ export default function AddTransactionScreen() {
             >
               <ThemedText
                 style={{
-                  color: toAccountId ? theme.text : theme.textTertiary,
+                  color: toAccountId
+                    ? theme.text
+                    : theme.textTertiary,
                 }}
               >
                 {toAccountId
@@ -233,9 +238,7 @@ export default function AddTransactionScreen() {
             onPress={() => setShowDatePicker(true)}
             style={[styles.pickerBtn, { backgroundColor: theme.border }]}
           >
-            <ThemedText>
-              {formatDate(date.toISOString().split('T')[0])}
-            </ThemedText>
+            <ThemedText>{formatDate(date.toISOString().split('T')[0])}</ThemedText>
           </Pressable>
 
           {showDatePicker && (
@@ -268,7 +271,19 @@ export default function AddTransactionScreen() {
             ]}
           >
             <ThemedText type="smallBold" style={styles.saveText}>
-              {saving ? 'Saving...' : 'Save Transaction'}
+              {saving ? 'Saving...' : 'Save Changes'}
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            onPress={handleDelete}
+            style={[styles.deleteBtn, { borderColor: theme.expense }]}
+          >
+            <ThemedText
+              type="smallBold"
+              style={[styles.deleteText, { color: theme.expense }]}
+            >
+              Delete Transaction
             </ThemedText>
           </Pressable>
         </ScrollView>
@@ -309,16 +324,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingTop: Spacing.three,
   },
-  typeRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  typeBtn: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.button,
-    alignItems: 'center',
-  },
   amountCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -354,6 +359,15 @@ const styles = StyleSheet.create({
   },
   saveText: {
     color: '#FFFFFF',
+    fontSize: 15,
+  },
+  deleteBtn: {
+    paddingVertical: Spacing.lg,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  deleteText: {
     fontSize: 15,
   },
 });

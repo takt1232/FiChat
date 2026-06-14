@@ -184,7 +184,11 @@ export default function DashboardScreen() {
             <SectionHeader label="Recent Transactions" />
             <View style={styles.txList}>
               {recentTx.map((tx) => (
-                <TransactionItem key={tx.id} transaction={tx} />
+                <TransactionItem
+                  key={tx.id}
+                  transaction={tx}
+                  onPress={() => router.push(`/edit-transaction/${tx.id}`)}
+                />
               ))}
             </View>
           </View>

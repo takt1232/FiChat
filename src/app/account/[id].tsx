@@ -79,7 +79,11 @@ export default function AccountDetailScreen() {
                 <SectionHeader label={date} />
                 <View style={styles.txList}>
                   {txs.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} />
+                    <TransactionItem
+                      key={tx.id}
+                      transaction={tx}
+                      onPress={() => router.push(`/edit-transaction/${tx.id}`)}
+                    />
                   ))}
                 </View>
               </View>

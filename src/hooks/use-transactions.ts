@@ -130,8 +130,149 @@ export function useTransactions() {
   );
 
   const remove = useCallback(async (id: number): Promise<void> => {
-    await db.runAsync('DELETE FROM transactions WHERE id = ?', id);
+    await db.withTransactionAsync(async () => {
+      const tx = await db.getFirstAsync<Transaction>(
+        'SELECT * FROM transactions WHERE id = ?', id,
+      );
+      if (!tx) return;
+
+      await _revertBalance(tx);
+
+      await db.runAsync('DELETE FROM transactions WHERE id = ?', id);
+    });
   }, [db]);
+
+  const update = useCallback(
+    async (
+      id: number,
+      data: {
+        amount: number;
+        category_id?: number | null;
+        note?: string;
+        date?: string;
+        from_account_id?: number | null;
+        to_account_id?: number | null;
+      },
+    ): Promise<void> => {
+      await db.withTransactionAsync(async () => {
+        const old = await db.getFirstAsync<Transaction>(
+          'SELECT * FROM transactions WHERE id = ?', id,
+        );
+        if (!old) return;
+
+        await _revertBalance(old);
+
+        const newAmount = data.amount;
+        const newFrom = data.from_account_id ?? null;
+        const newTo = data.to_account_id ?? null;
+
+        if (old.type === 'income' && newTo) {
+          const acc = await db.getFirstAsync<{ balance: number }>(
+            'SELECT balance FROM accounts WHERE id = ?', newTo,
+          );
+          if (acc) {
+            await db.runAsync(
+              'UPDATE accounts SET balance = ? WHERE id = ?',
+              acc.balance + newAmount, newTo,
+            );
+          }
+        } else if (old.type === 'expense' && newFrom) {
+          const acc = await db.getFirstAsync<{ balance: number }>(
+            'SELECT balance FROM accounts WHERE id = ?', newFrom,
+          );
+          if (acc) {
+            await db.runAsync(
+              'UPDATE accounts SET balance = ? WHERE id = ?',
+              acc.balance - newAmount, newFrom,
+            );
+          }
+        } else if (old.type === 'transfer') {
+          if (newFrom) {
+            const fromAcc = await db.getFirstAsync<{ balance: number }>(
+              'SELECT balance FROM accounts WHERE id = ?', newFrom,
+            );
+            if (fromAcc) {
+              await db.runAsync(
+                'UPDATE accounts SET balance = ? WHERE id = ?',
+                fromAcc.balance - newAmount, newFrom,
+              );
+            }
+          }
+          if (newTo) {
+            const toAcc = await db.getFirstAsync<{ balance: number }>(
+              'SELECT balance FROM accounts WHERE id = ?', newTo,
+            );
+            if (toAcc) {
+              await db.runAsync(
+                'UPDATE accounts SET balance = ? WHERE id = ?',
+                toAcc.balance + newAmount, newTo,
+              );
+            }
+          }
+        }
+
+        await db.runAsync(
+          `UPDATE transactions SET amount = ?, category_id = ?, note = ?, date = ?,
+           from_account_id = ?, to_account_id = ? WHERE id = ?`,
+          newAmount,
+          data.category_id ?? null,
+          data.note ?? '',
+          data.date ?? old.date,
+          newFrom,
+          newTo,
+          id,
+        );
+      });
+    },
+    [db],
+  );
+
+  async function _revertBalance(tx: Transaction) {
+    if (tx.type === 'income' && tx.to_account_id) {
+      const acc = await db.getFirstAsync<{ balance: number }>(
+        'SELECT balance FROM accounts WHERE id = ?', tx.to_account_id,
+      );
+      if (acc) {
+        await db.runAsync(
+          'UPDATE accounts SET balance = ? WHERE id = ?',
+          acc.balance - tx.amount, tx.to_account_id,
+        );
+      }
+    } else if (tx.type === 'expense' && tx.from_account_id) {
+      const acc = await db.getFirstAsync<{ balance: number }>(
+        'SELECT balance FROM accounts WHERE id = ?', tx.from_account_id,
+      );
+      if (acc) {
+        await db.runAsync(
+          'UPDATE accounts SET balance = ? WHERE id = ?',
+          acc.balance + tx.amount, tx.from_account_id,
+        );
+      }
+    } else if (tx.type === 'transfer') {
+      if (tx.from_account_id) {
+        const fromAcc = await db.getFirstAsync<{ balance: number }>(
+          'SELECT balance FROM accounts WHERE id = ?', tx.from_account_id,
+        );
+        if (fromAcc) {
+          await db.runAsync(
+            'UPDATE accounts SET balance = ? WHERE id = ?',
+            fromAcc.balance + tx.amount, tx.from_account_id,
+          );
+        }
+      }
+      if (tx.to_account_id) {
+        const toAcc = await db.getFirstAsync<{ balance: number }>(
+          'SELECT balance FROM accounts WHERE id = ?', tx.to_account_id,
+        );
+        if (toAcc) {
+          await db.runAsync(
+            'UPDATE accounts SET balance = ? WHERE id = ?',
+            toAcc.balance - tx.amount, tx.to_account_id,
+          );
+        }
+      }
+    }
+  }
 
   const getMonthlySummary = useCallback(async (): Promise<{ income: number; expense: number }> => {
     const rows = await db.getAllAsync<{ type: string; total: number }>(
@@ -145,5 +286,5 @@ export function useTransactions() {
     };
   }, [db]);
 
-  return { list, getById, listByAccount, listRecent, create, remove, getMonthlySummary };
+  return { list, getById, listByAccount, listRecent, create, update, remove, getMonthlySummary };
 }
