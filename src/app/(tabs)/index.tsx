@@ -1,25 +1,27 @@
-import { AccountCard } from '@/components/account-card';
-import { AmountDisplay } from '@/components/amount-display';
-import { GoalCard } from '@/components/goal-card';
-import { Header } from '@/components/header';
-import { SectionHeader } from '@/components/section-header';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { TransactionItem } from '@/components/transaction-item';
-import { BottomTabInset, Spacing } from '@/constants/theme';
-import { useAccounts } from '@/hooks/use-accounts';
-import { useGoals } from '@/hooks/use-goals';
-import { useTheme } from '@/hooks/use-theme';
-import { TransactionRow, useTransactions } from '@/hooks/use-transactions';
-import { Account, Goal } from '@/types';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AccountCard } from "@/components/account-card";
+import { AmountDisplay } from "@/components/amount-display";
+import { Card } from "@/components/card";
+import { GoalCard } from "@/components/goal-card";
+import { Header } from "@/components/header";
+import { SectionHeader } from "@/components/section-header";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { TransactionItem } from "@/components/transaction-item";
+import { BottomTabInset, Spacing } from "@/constants/theme";
+import { useAccounts } from "@/hooks/use-accounts";
+import { useGoals } from "@/hooks/use-goals";
+import { useTheme } from "@/hooks/use-theme";
+import { TransactionRow, useTransactions } from "@/hooks/use-transactions";
+import { Account, Goal } from "@/types";
+import { router, useFocusEffect } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import { useCallback, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 export default function DashboardScreen() {
   const theme = useTheme();
   const { totalBalance, list: listAccounts } = useAccounts();
-  const { listRecent } = useTransactions();
+  const { listRecent, getMonthlySummary } = useTransactions();
   const { list: listGoals } = useGoals();
 
   const [total, setTotal] = useState(0);
@@ -30,28 +32,65 @@ export default function DashboardScreen() {
   const load = useCallback(async () => {
     setTotal(await totalBalance());
     setAccounts(await listAccounts());
-    setRecentTx(await listRecent(5));
+    const [tx, summary] = await Promise.all([
+      listRecent(5),
+      getMonthlySummary(),
+    ]);
+    setRecentTx(tx);
     setGoals(await listGoals());
-  }, [totalBalance, listAccounts, listRecent, listGoals]);
+  }, [totalBalance, listAccounts, listRecent, getMonthlySummary, listGoals]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return (
     <ThemedView style={styles.screen}>
       <Header />
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: BottomTabInset + Spacing.three }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: BottomTabInset + Spacing.three },
+        ]}
       >
-        
-      <ThemedText type="small" style={[styles.totalLabel, { color: theme.textSecondary }]}>
-        Total Balance
-      </ThemedText>
-      <AmountDisplay amount={total} style={styles.totalAmount} accent />
+        <Card style={styles.totalCard}>
+          <View
+            style={[
+              {
+                display: "flex",
+                flexDirection: "row",
+                gap: Spacing.md,
+                alignContent: "center",
+              },
+            ]}
+          >
+            <ThemedText
+              type="small"
+              style={[styles.totalLabel, { color: theme.textSecondary }]}
+            >
+              Total Balance
+            </ThemedText>
+            <Pressable>
+              <SymbolView
+                name={{ ios: "bell", android: "notifications" }}
+                tintColor={theme.textSecondary}
+                size={14}
+              ></SymbolView>
+            </Pressable>
+          </View>
+          <AmountDisplay amount={total} style={styles.totalAmount} accent />
+        </Card>
 
         {accounts.length > 0 && (
           <View style={styles.section}>
             <SectionHeader label="Accounts" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accountScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.accountScroll}
+            >
               {accounts.map((acc) => (
                 <View key={acc.id} style={styles.accountWrapper}>
                   <AccountCard
@@ -62,10 +101,20 @@ export default function DashboardScreen() {
                 </View>
               ))}
               <Pressable
-                style={[styles.addAccountBtn, { backgroundColor: theme.border }]}
-                onPress={() => router.push('/add-account')}
+                style={[
+                  styles.addAccountBtn,
+                  { backgroundColor: theme.border },
+                ]}
+                onPress={() => router.push("/add-account")}
               >
-                <ThemedText style={[styles.addAccountIcon, { color: theme.textSecondary }]}>+</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.addAccountIcon,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  +
+                </ThemedText>
               </Pressable>
             </ScrollView>
           </View>
@@ -87,13 +136,16 @@ export default function DashboardScreen() {
             <SectionHeader label="Goals" />
             <View style={styles.goalList}>
               {goals.slice(0, 3).map((g) => (
-                <GoalCard key={g.id} goal={g} onPress={() => router.push(`/goal/${g.id}`)} />
+                <GoalCard
+                  key={g.id}
+                  goal={g}
+                  onPress={() => router.push(`/goal/${g.id}`)}
+                />
               ))}
             </View>
           </View>
         )}
       </ScrollView>
-
     </ThemedView>
   );
 }
@@ -106,8 +158,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.four,
   },
   totalCard: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxxl,
     gap: Spacing.xs,
   },
   totalLabel: {
@@ -115,7 +165,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   totalAmount: {
-    fontSize: 40,
+    fontSize: 32,
   },
   section: {
     gap: Spacing.md,
@@ -130,12 +180,12 @@ const styles = StyleSheet.create({
   addAccountBtn: {
     width: 56,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   addAccountIcon: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   txList: {
     gap: Spacing.sm,

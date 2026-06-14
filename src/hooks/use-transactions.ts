@@ -133,5 +133,17 @@ export function useTransactions() {
     await db.runAsync('DELETE FROM transactions WHERE id = ?', id);
   }, [db]);
 
-  return { list, getById, listByAccount, listRecent, create, remove };
+  const getMonthlySummary = useCallback(async (): Promise<{ income: number; expense: number }> => {
+    const rows = await db.getAllAsync<{ type: string; total: number }>(
+      `SELECT type, SUM(amount) as total FROM transactions
+       WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+       GROUP BY type`
+    );
+    return {
+      income: rows.find(r => r.type === 'income')?.total ?? 0,
+      expense: rows.find(r => r.type === 'expense')?.total ?? 0,
+    };
+  }, [db]);
+
+  return { list, getById, listByAccount, listRecent, create, remove, getMonthlySummary };
 }
