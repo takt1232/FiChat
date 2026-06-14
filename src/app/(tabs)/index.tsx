@@ -1,22 +1,20 @@
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
+import { AccountCard } from '@/components/account-card';
+import { AmountDisplay } from '@/components/amount-display';
+import { GoalCard } from '@/components/goal-card';
+import { Header } from '@/components/header';
+import { SectionHeader } from '@/components/section-header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { AmountDisplay } from '@/components/amount-display';
-import { AccountCard } from '@/components/account-card';
-import { GoalCard } from '@/components/goal-card';
 import { TransactionItem } from '@/components/transaction-item';
-import { Card } from '@/components/card';
-import { SectionHeader } from '@/components/section-header';
-import { Header } from '@/components/header';
-import { Spacing, BottomTabInset } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useAccounts } from '@/hooks/use-accounts';
-import { useTransactions, TransactionRow } from '@/hooks/use-transactions';
 import { useGoals } from '@/hooks/use-goals';
+import { useTheme } from '@/hooks/use-theme';
+import { TransactionRow, useTransactions } from '@/hooks/use-transactions';
 import { Account, Goal } from '@/types';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 export default function DashboardScreen() {
   const theme = useTheme();
@@ -44,12 +42,11 @@ export default function DashboardScreen() {
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: BottomTabInset + Spacing.three }]}
       >
-        <Card elevated style={styles.totalCard}>
-          <ThemedText type="small" style={[styles.totalLabel, { color: theme.textSecondary }]}>
-            Total Balance
-          </ThemedText>
-          <AmountDisplay amount={total} style={styles.totalAmount} accent />
-        </Card>
+        
+      <ThemedText type="small" style={[styles.totalLabel, { color: theme.textSecondary }]}>
+        Total Balance
+      </ThemedText>
+      <AmountDisplay amount={total} style={styles.totalAmount} accent />
 
         {accounts.length > 0 && (
           <View style={styles.section}>
