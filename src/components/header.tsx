@@ -1,11 +1,11 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useThemeMode } from '@/context/ThemeContext';
+import { useTheme } from '@/hooks/use-theme';
 import { SymbolView } from 'expo-symbols';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function Header() {
   const insets = useSafeAreaInsets();
@@ -23,14 +23,14 @@ export function Header() {
       <View style={styles.right}>
         <Pressable onPress={toggleTheme} style={styles.iconBtn}>
           <SymbolView
-            name={mode === 'light' ? 'moon' : 'sun.max'}
+            name={mode === 'light' ? { ios: 'moon', android: 'dark_mode' } : { ios: 'sun.max', android: 'light_mode' }}
             tintColor={theme.textSecondary}
             size={20}
           />
         </Pressable>
         <Pressable style={styles.iconBtn}>
           <SymbolView
-            name="bell"
+            name={{ ios: 'bell', android: 'notifications' }}
             tintColor={theme.textSecondary}
             size={20}
           />

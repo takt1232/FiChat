@@ -11,7 +11,9 @@ import { SymbolView } from 'expo-symbols';
 import { Children, type ReactElement } from 'react';
 import { Pressable, StyleSheet, useColorScheme, View } from 'react-native';
 
+import { ThemedView } from '@/components/themed-view';
 import { Colors, Radii, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function AppTabs() {
   return (
@@ -35,23 +37,22 @@ export default function AppTabs() {
 }
 
 function FloatingDock(props: TabListProps) {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const theme = useTheme();
   const children = Children.toArray(props.children) as ReactElement[];
 
   return (
     <View style={styles.container}>
-      <View style={[styles.dock, { backgroundColor: colors.card }]}>
+      <ThemedView type="card" style={styles.dock}>
         {children[0]}
         {children[1]}
         <Pressable
-          style={[styles.fab, { backgroundColor: colors.accent }]}
+          style={[styles.fab, { backgroundColor: theme.accent }]}
           onPress={() => router.push('/add-transaction')}
         >
-          <SymbolView name="plus" tintColor="#fff" size={22} weight="bold" />
+          <SymbolView name={{ ios: 'plus', android: 'add' }} tintColor="#fff" size={22} weight="bold" />
         </Pressable>
         {children[2]}
-      </View>
+      </ThemedView>
     </View>
   );
 }
