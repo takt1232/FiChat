@@ -8,7 +8,7 @@ import { AccountCard } from '@/components/account-card';
 import { SectionHeader } from '@/components/section-header';
 import { Card } from '@/components/card';
 import { Header } from '@/components/header';
-import { Spacing, BottomTabInset } from '@/constants/theme';
+import { Spacing, BottomTabInset, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { Account } from '@/types';
@@ -49,6 +49,14 @@ export default function AccountsScreen() {
             <ThemedText type="default" style={{ color: theme.textSecondary }}>
               No accounts yet.
             </ThemedText>
+            <Pressable
+              onPress={() => router.push('/add-account')}
+              style={[styles.addBtn, { backgroundColor: theme.accent }]}
+            >
+              <ThemedText type="smallBold" style={styles.addBtnText}>
+                + New Account
+              </ThemedText>
+            </Pressable>
           </View>
         ) : (
           <View style={styles.section}>
@@ -62,6 +70,14 @@ export default function AccountsScreen() {
                 />
               ))}
             </View>
+            <Pressable
+              onPress={() => router.push('/add-account')}
+              style={[styles.addBtn, { backgroundColor: theme.accent }]}
+            >
+              <ThemedText type="smallBold" style={styles.addBtnText}>
+                + New Account
+              </ThemedText>
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -98,5 +114,17 @@ const styles = StyleSheet.create({
   empty: {
     paddingVertical: Spacing.huge,
     alignItems: 'center',
+    gap: Spacing.lg,
+  },
+  addBtn: {
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xxl,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  addBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
   },
 });
