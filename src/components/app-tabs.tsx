@@ -30,6 +30,9 @@ export default function AppTabs() {
           <TabTrigger name="goals" href="/(tabs)/goals" asChild>
             <TabButton icon={{ ios: 'target', android: 'flag', web: 'flag' }} label="Goals" />
           </TabTrigger>
+          <TabTrigger name="recurring" href="/(tabs)/recurring" asChild>
+            <TabButton icon={{ ios: 'clock.arrow.circlepath', android: 'history', web: 'repeat' }} label="Recurring" />
+          </TabTrigger>
         </FloatingDock>
       </TabList>
     </Tabs>

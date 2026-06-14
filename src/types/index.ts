@@ -42,3 +42,24 @@ export interface Category {
   type: 'income' | 'expense';
   color: string;
 }
+
+export type RecurringFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface RecurringTransaction {
+  id: number;
+  label: string;
+  type: TransactionType;
+  amount: number;
+  category_id: number | null;
+  from_account_id: number | null;
+  to_account_id: number | null;
+  note: string;
+  frequency: RecurringFrequency;
+  interval_count: number;
+  day_of_week: number | null;
+  day_of_month: number | null;
+  next_due_date: string;
+  notification_time: string;
+  is_active: number;
+  created_at: number;
+}

@@ -12,6 +12,8 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useGoals } from "@/hooks/use-goals";
 import { useTheme } from "@/hooks/use-theme";
 import { TransactionRow, useTransactions } from "@/hooks/use-transactions";
+import { RecurringCard } from "@/components/recurring-card";
+import { RecurringRow, useRecurring } from "@/hooks/use-recurring";
 import { Account, Goal } from "@/types";
 import { router, useFocusEffect } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -24,10 +26,13 @@ export default function DashboardScreen() {
   const { listRecent, getMonthlySummary } = useTransactions();
   const { list: listGoals } = useGoals();
 
+  const { list: listRecurring } = useRecurring();
+
   const [total, setTotal] = useState(0);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [recentTx, setRecentTx] = useState<TransactionRow[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [recurrings, setRecurrings] = useState<RecurringRow[]>([]);
 
   const load = useCallback(async () => {
     setTotal(await totalBalance());
@@ -38,7 +43,8 @@ export default function DashboardScreen() {
     ]);
     setRecentTx(tx);
     setGoals(await listGoals());
-  }, [totalBalance, listAccounts, listRecent, getMonthlySummary, listGoals]);
+    setRecurrings(await listRecurring());
+  }, [totalBalance, listAccounts, listRecent, getMonthlySummary, listGoals, listRecurring]);
 
   useFocusEffect(
     useCallback(() => {
@@ -141,6 +147,24 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
         </Card>
+
+        {recurrings.filter((r) => r.is_active).length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader label="Upcoming Payments" />
+            <View style={styles.recurringList}>
+              {recurrings
+                .filter((r) => r.is_active)
+                .slice(0, 3)
+                .map((r) => (
+                  <RecurringCard
+                    key={r.id}
+                    recurring={r}
+                    onPress={() => router.push(`/edit-recurring/${r.id}`)}
+                  />
+                ))}
+            </View>
+          </View>
+        )}
 
         {accounts.length > 0 && (
           <View style={styles.section}>
@@ -263,6 +287,9 @@ const styles = StyleSheet.create({
   addAccountIcon: {
     fontSize: 22,
     fontWeight: "600",
+  },
+  recurringList: {
+    gap: Spacing.sm,
   },
   txList: {
     gap: Spacing.sm,

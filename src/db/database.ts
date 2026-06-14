@@ -2,7 +2,7 @@ import { type SQLiteDatabase } from 'expo-sqlite';
 import { DEFAULT_CATEGORIES } from '@/constants/categories';
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  const DATABASE_VERSION = 1;
+  const DATABASE_VERSION = 2;
   const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let currentDbVersion = result?.user_version ?? 0;
 
@@ -71,6 +71,34 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     }
 
     currentDbVersion = 1;
+  }
+
+  if (currentDbVersion === 1) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS recurring_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        label TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('income','expense','transfer')),
+        amount REAL NOT NULL CHECK(amount > 0),
+        category_id INTEGER,
+        from_account_id INTEGER,
+        to_account_id INTEGER,
+        note TEXT NOT NULL DEFAULT '',
+        frequency TEXT NOT NULL CHECK(frequency IN ('daily','weekly','biweekly','monthly','quarterly','yearly')),
+        interval_count INTEGER NOT NULL DEFAULT 1,
+        day_of_week INTEGER,
+        day_of_month INTEGER,
+        next_due_date TEXT NOT NULL,
+        notification_time TEXT NOT NULL DEFAULT '09:00',
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+        FOREIGN KEY (from_account_id) REFERENCES accounts(id) ON DELETE SET NULL,
+        FOREIGN KEY (to_account_id) REFERENCES accounts(id) ON DELETE SET NULL
+      );
+    `);
+
+    currentDbVersion = 2;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
