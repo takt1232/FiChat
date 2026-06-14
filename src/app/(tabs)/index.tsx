@@ -74,13 +74,72 @@ export default function DashboardScreen() {
             </ThemedText>
             <Pressable>
               <SymbolView
-                name={{ ios: "bell", android: "notifications" }}
+                name={{ ios: "eye", android: "visibility" }}
                 tintColor={theme.textSecondary}
                 size={14}
-              ></SymbolView>
+              />
             </Pressable>
           </View>
-          <AmountDisplay amount={total} style={styles.totalAmount} accent />
+          <AmountDisplay
+            amount={total}
+            style={[styles.totalAmount, { color: theme.text }]}
+          />
+          <View style={styles.actionRow}>
+            <Pressable
+              style={[
+                styles.actionBtn,
+                { backgroundColor: theme.income + "20" },
+              ]}
+              onPress={() => router.push("/add-income")}
+            >
+              <SymbolView
+                name={{ ios: "plus.circle", android: "add_circle" }}
+                tintColor={theme.income}
+                size={14}
+              />
+              <ThemedText
+                type="smallBold"
+                style={{ color: theme.income }}
+              >
+                + Income
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.actionBtn,
+                { backgroundColor: theme.expense + "20" },
+              ]}
+              onPress={() => router.push("/add-expense")}
+            >
+              <SymbolView
+                name={{ ios: "minus.circle", android: "remove_circle" }}
+                tintColor={theme.expense}
+                size={14}
+              />
+              <ThemedText
+                type="smallBold"
+                style={{ color: theme.expense }}
+              >
+                + Expense
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              style={[styles.actionBtn, { backgroundColor: theme.border }]}
+              onPress={() => router.push("/history")}
+            >
+              <SymbolView
+                name={{ ios: "clock", android: "history" }}
+                tintColor={theme.textSecondary}
+                size={14}
+              />
+              <ThemedText
+                type="smallBold"
+                style={{ color: theme.textSecondary }}
+              >
+                History
+              </ThemedText>
+            </Pressable>
+          </View>
         </Card>
 
         {accounts.length > 0 && (
@@ -166,6 +225,20 @@ const styles = StyleSheet.create({
   },
   totalAmount: {
     fontSize: 32,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.half,
+    paddingVertical: Spacing.sm,
+    borderRadius: 999,
   },
   section: {
     gap: Spacing.md,
