@@ -6,9 +6,10 @@ import { ThemedView } from '@/components/themed-view';
 import { Card } from '@/components/card';
 import { AmountDisplay } from '@/components/amount-display';
 import { Spacing, Radii } from '@/constants/theme';
-import { formatDate } from '@/constants/format';
+import { formatDate, computeNextDate } from '@/constants/format';
 import { useTheme } from '@/hooks/use-theme';
 import { RecurringRow, useRecurring } from '@/hooks/use-recurring';
+import { useTransactions } from '@/hooks/use-transactions';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -21,6 +22,7 @@ export default function EditRecurringScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const { getById, update, remove } = useRecurring();
+  const { create } = useTransactions();
 
   const [recurring, setRecurring] = useState<RecurringRow | null>(null);
 
@@ -48,6 +50,38 @@ export default function EditRecurringScreen() {
       },
     ]);
   }, [id, remove]);
+
+  const handlePayNow = useCallback(async () => {
+    if (!recurring) return;
+    const [h = '9', m = '0'] = (recurring.notification_time ?? '09:00').split(':');
+    const nextDate = computeNextDate(
+      recurring.frequency as 'daily' | 'weekly' | 'monthly',
+      recurring.day_of_week,
+      recurring.day_of_month,
+      parseInt(h, 10),
+      parseInt(m, 10),
+    );
+    if (!nextDate) {
+      Alert.alert('Could not compute next due date');
+      return;
+    }
+    try {
+      await create({
+        type: recurring.type,
+        amount: recurring.amount,
+        category_id: recurring.category_id,
+        note: recurring.note || recurring.label,
+        date: new Date().toISOString().split('T')[0],
+        from_account_id: recurring.from_account_id,
+        to_account_id: recurring.to_account_id,
+      });
+      await update(parseInt(id, 10), { next_due_date: nextDate });
+      setRecurring({ ...recurring, next_due_date: nextDate });
+      Alert.alert('Done', 'Transaction saved and next due date advanced.');
+    } catch {
+      Alert.alert('Error', 'Something went wrong.');
+    }
+  }, [recurring, id, create, update]);
 
   if (!recurring) return null;
 
@@ -88,6 +122,15 @@ export default function EditRecurringScreen() {
         >
           <ThemedText type="smallBold" style={{ color: recurring.is_active ? theme.text : '#fff' }}>
             {recurring.is_active ? 'Pause' : 'Activate'}
+          </ThemedText>
+        </Pressable>
+
+        <Pressable
+          onPress={handlePayNow}
+          style={[styles.actionBtn, { backgroundColor: theme.accent }]}
+        >
+          <ThemedText type="smallBold" style={{ color: '#fff' }}>
+            Pay Now
           </ThemedText>
         </Pressable>
 

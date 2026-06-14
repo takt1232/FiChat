@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -18,15 +18,13 @@ import { ThemedView } from '@/components/themed-view';
 import { Card } from '@/components/card';
 import { PickerModal, PickerOption } from '@/components/picker-modal';
 import { Spacing, Radii } from '@/constants/theme';
-import { formatDate } from '@/constants/format';
-import { formatCurrency } from '@/constants/currency';
+import { formatDate, computeNextDate } from '@/constants/format';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCategories } from '@/hooks/use-categories';
 import { useRecurring } from '@/hooks/use-recurring';
-import { scheduleRecurringNotification } from '@/services/notifications';
-import { Account, Category, TransactionType, RecurringFrequency } from '@/types';
+import { Account, Category, TransactionType } from '@/types';
 
 const TX_TYPES: { key: TransactionType; label: string }[] = [
   { key: 'expense', label: 'Expense' },
@@ -40,7 +38,7 @@ export default function AddTransactionScreen() {
   const { create } = useTransactions();
   const { list: listAccounts } = useAccounts();
   const { list: listCategories } = useCategories();
-  const { getById: getRecurring, create: createRecurring } = useRecurring();
+  const { getById: getRecurring, update: updateRecurring } = useRecurring();
 
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
@@ -53,14 +51,16 @@ export default function AddTransactionScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [repeatFreq, setRepeatFreq] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
-  const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
-  const [repeatHour, setRepeatHour] = useState(9);
-  const [repeatMinute, setRepeatMinute] = useState(0);
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<
     'category' | 'fromAccount' | 'toAccount' | null
   >(null);
+  const [recurringConfig, setRecurringConfig] = useState<{
+    frequency: 'daily' | 'weekly' | 'monthly';
+    day_of_week: number | null;
+    day_of_month: number | null;
+    notification_hour: number;
+    notification_minute: number;
+  } | null>(null);
 
   useState(() => {
     listAccounts().then(setAccounts);
@@ -80,6 +80,14 @@ export default function AddTransactionScreen() {
         setFromAccountId(r.from_account_id);
         setToAccountId(r.to_account_id);
         setNote(r.note);
+        const [h = '9', m = '0'] = (r.notification_time ?? '09:00').split(':');
+        setRecurringConfig({
+          frequency: r.frequency as 'daily' | 'weekly' | 'monthly',
+          day_of_week: r.day_of_week,
+          day_of_month: r.day_of_month,
+          notification_hour: parseInt(h, 10),
+          notification_minute: parseInt(m, 10),
+        });
       });
     }, [recurringId, getRecurring]),
   );
@@ -91,61 +99,6 @@ export default function AddTransactionScreen() {
     },
     [],
   );
-
-  const timeStr = useMemo(
-    () => `${String(repeatHour).padStart(2, '0')}:${String(repeatMinute).padStart(2, '0')}`,
-    [repeatHour, repeatMinute],
-  );
-
-  const toggleDay = useCallback((day: number) => {
-    setSelectedDays((prev) => {
-      const next = new Set(prev);
-      if (next.has(day)) next.delete(day);
-      else next.add(day);
-      return next;
-    });
-  }, []);
-
-  const computeNextDueDate = useCallback(() => {
-    if (repeatFreq === 'none') return null;
-    const now = new Date();
-    const time = new Date(now);
-    time.setHours(repeatHour, repeatMinute, 0, 0);
-
-    if (repeatFreq === 'daily') {
-      const next = new Date(now);
-      next.setHours(repeatHour, repeatMinute, 0, 0);
-      if (next <= now) next.setDate(next.getDate() + 1);
-      return next.toISOString().split('T')[0];
-    }
-
-    if (repeatFreq === 'weekly') {
-      if (selectedDays.size === 0) return null;
-      const today = now.getDay();
-      const sorted = [...selectedDays].sort((a, b) => a - b);
-      for (const d of sorted) {
-        let diff = d - today;
-        if (diff < 0) diff += 7;
-        const next = new Date(now);
-        next.setDate(next.getDate() + diff);
-        next.setHours(repeatHour, repeatMinute, 0, 0);
-        if (next > now) return next.toISOString().split('T')[0];
-      }
-      const next = new Date(now);
-      next.setDate(next.getDate() + (7 - today + sorted[0]));
-      next.setHours(repeatHour, repeatMinute, 0, 0);
-      return next.toISOString().split('T')[0];
-    }
-
-    if (repeatFreq === 'monthly') {
-      const dayOfMonth = date.getDate();
-      const next = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, repeatHour, repeatMinute, 0, 0);
-      if (next <= now) next.setMonth(next.getMonth() + 1);
-      return next.toISOString().split('T')[0];
-    }
-
-    return null;
-  }, [repeatFreq, selectedDays, date, repeatHour, repeatMinute]);
 
   const handleSave = useCallback(async () => {
     const parsed = parseFloat(amount);
@@ -166,17 +119,6 @@ export default function AddTransactionScreen() {
       return;
     }
 
-    if (repeatFreq !== 'none') {
-      if (repeatFreq === 'weekly' && selectedDays.size === 0) {
-        Alert.alert('Please select at least one day');
-        return;
-      }
-      if (repeatFreq === 'monthly' && (date.getDate() < 1 || date.getDate() > 28)) {
-        Alert.alert('Please select a valid day of month (1-28) on the date picker');
-        return;
-      }
-    }
-
     setSaving(true);
     try {
       const dateStr = date.toISOString().split('T')[0];
@@ -190,31 +132,16 @@ export default function AddTransactionScreen() {
         to_account_id: type === 'income' ? toAccountId : type === 'transfer' ? toAccountId : null,
       });
 
-      if (repeatFreq !== 'none' && !recurringId) {
-        const nextDue = computeNextDueDate();
-        if (!nextDue) {
-          Alert.alert('Could not compute next due date');
-          setSaving(false);
-          return;
-        }
-        const daysOfWeek =
-          repeatFreq === 'weekly'
-            ? [...selectedDays].reduce((mask, d) => mask | (1 << d), 0)
-            : 0;
-        const created = await createRecurring({
-          label: note || `${type.charAt(0).toUpperCase() + type.slice(1)} - ${formatCurrency(parsed)}`,
-          type,
-          amount: parsed,
-          category_id: categoryId,
-          from_account_id: type === 'expense' ? fromAccountId : type === 'transfer' ? fromAccountId : null,
-          to_account_id: type === 'income' ? toAccountId : type === 'transfer' ? toAccountId : null,
-          note,
-          frequency: repeatFreq as RecurringFrequency,
-          day_of_week: daysOfWeek || null,
-          next_due_date: nextDue,
-        });
-        if (created) {
-          scheduleRecurringNotification(created, note || 'Untitled', nextDue, timeStr);
+      if (recurringId && recurringConfig) {
+        const nextDate = computeNextDate(
+          recurringConfig.frequency,
+          recurringConfig.day_of_week,
+          recurringConfig.day_of_month,
+          recurringConfig.notification_hour,
+          recurringConfig.notification_minute,
+        );
+        if (nextDate) {
+          await updateRecurring(parseInt(recurringId, 10), { next_due_date: nextDate });
         }
       }
 
@@ -222,7 +149,7 @@ export default function AddTransactionScreen() {
     } finally {
       setSaving(false);
     }
-  }, [amount, type, date, fromAccountId, toAccountId, categoryId, note, create, repeatFreq, recurringId, selectedDays, computeNextDueDate, timeStr]);
+  }, [amount, type, date, fromAccountId, toAccountId, categoryId, note, create, recurringId, recurringConfig, updateRecurring]);
 
   const filteredCategories = categories.filter((c) => c.type === (type === 'transfer' ? 'expense' : type));
 
@@ -381,103 +308,12 @@ export default function AddTransactionScreen() {
             multiline
           />
 
-          {!recurringId && (
-            <>
-              <View style={styles.repeatLabel}>
-                <ThemedText type="smallBold">Repeat</ThemedText>
-              </View>
-              <View style={styles.freqRow}>
-                {(['none', 'daily', 'weekly', 'monthly'] as const).map((f) => (
-                  <Pressable
-                    key={f}
-                    onPress={() => setRepeatFreq(f)}
-                    style={[
-                      styles.freqBtn,
-                      {
-                        backgroundColor:
-                          repeatFreq === f ? theme.accent : theme.border,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      type="smallBold"
-                      style={{
-                        color: repeatFreq === f ? '#fff' : theme.textSecondary,
-                      }}
-                    >
-                      {f === 'none' ? 'None' : f.charAt(0).toUpperCase() + f.slice(1)}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-
-              {repeatFreq === 'weekly' && (
-                <View style={styles.dayRow}>
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
-                    (label, i) => (
-                      <Pressable
-                        key={i}
-                        onPress={() => toggleDay(i)}
-                        style={[
-                          styles.dayPill,
-                          {
-                            backgroundColor: selectedDays.has(i)
-                              ? theme.accent
-                              : theme.border,
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          type="smallBold"
-                          style={{
-                            color: selectedDays.has(i)
-                              ? '#fff'
-                              : theme.textSecondary,
-                          }}
->
-                          {label}
-                        </ThemedText>
-                      </Pressable>
-                    ),
-                  )}
-                </View>
-              )}
-
-              {repeatFreq !== 'none' && (
-                <Pressable
-                  onPress={() => setShowTimePicker(true)}
-                  style={[styles.pickerBtn, { backgroundColor: theme.border }]}
-                >
-                  <ThemedText>{timeStr}</ThemedText>
-                </Pressable>
-              )}
-
-              {showTimePicker && (
-                <DateTimePicker
-                  value={
-                    new Date(
-                      2024,
-                      0,
-                      1,
-                      repeatHour,
-                      repeatMinute,
-                    )
-                  }
-                  mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onValueChange={(
-                    _: DateTimePickerChangeEvent,
-                    selected?: Date,
-                  ) => {
-                    setShowTimePicker(Platform.OS === 'ios');
-                    if (selected) {
-                      setRepeatHour(selected.getHours());
-                      setRepeatMinute(selected.getMinutes());
-                    }
-                  }}
-                />
-              )}
-            </>
+          {recurringId && (
+            <View style={styles.advanceNotice}>
+              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                This transaction was pre-filled from a recurring template. After saving, the next due date will be advanced automatically.
+              </ThemedText>
+            </View>
           )}
 
           <Pressable
@@ -568,27 +404,11 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  repeatLabel: { marginTop: Spacing.sm },
-  freqRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  freqBtn: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.button,
-    alignItems: 'center',
-  },
-  dayRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  dayPill: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+  advanceNotice: {
+    padding: Spacing.lg,
+    borderRadius: Radii.input,
+    borderWidth: 1,
+    borderColor: 'rgba(0,196,180,0.3)',
   },
   saveBtn: {
     paddingVertical: Spacing.lg,

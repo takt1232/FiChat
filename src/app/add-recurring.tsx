@@ -18,6 +18,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Card } from '@/components/card';
 import { PickerModal, PickerOption } from '@/components/picker-modal';
 import { Spacing, Radii } from '@/constants/theme';
+import { computeNextDate } from '@/constants/format';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useCategories } from '@/hooks/use-categories';
@@ -75,45 +76,10 @@ export default function AddRecurringScreen() {
     });
   }, []);
 
-  const computeNextDueDate = useCallback(() => {
-    const now = new Date();
-    const date = new Date(now);
-    date.setHours(notificationHour, notificationMinute, 0, 0);
-
-    if (frequency === 'daily') {
-      const next = new Date(now);
-      next.setHours(notificationHour, notificationMinute, 0, 0);
-      if (next <= now) next.setDate(next.getDate() + 1);
-      return next.toISOString().split('T')[0];
-    }
-
-    if (frequency === 'weekly') {
-      if (selectedDays.size === 0) return null;
-      const today = now.getDay();
-      const sorted = [...selectedDays].sort((a, b) => a - b);
-      for (const d of sorted) {
-        let diff = d - today;
-        if (diff < 0) diff += 7;
-        const next = new Date(now);
-        next.setDate(next.getDate() + diff);
-        next.setHours(notificationHour, notificationMinute, 0, 0);
-        if (next > now) return next.toISOString().split('T')[0];
-      }
-      const next = new Date(now);
-      next.setDate(next.getDate() + (7 - today + sorted[0]));
-      next.setHours(notificationHour, notificationMinute, 0, 0);
-      return next.toISOString().split('T')[0];
-    }
-
-    if (frequency === 'monthly') {
-      const day = parseInt(dayOfMonth, 10) || 1;
-      const next = new Date(now.getFullYear(), now.getMonth(), day, notificationHour, notificationMinute, 0, 0);
-      if (next <= now) next.setMonth(next.getMonth() + 1);
-      return next.toISOString().split('T')[0];
-    }
-
-    return null;
-  }, [frequency, selectedDays, dayOfMonth, notificationHour, notificationMinute]);
+  const daysOfWeekMask = useMemo(
+    () => [...selectedDays].reduce((mask, d) => mask | (1 << d), 0),
+    [selectedDays],
+  );
 
   const handleSave = useCallback(async () => {
     if (!label.trim()) {
@@ -143,16 +109,17 @@ export default function AddRecurringScreen() {
       return;
     }
 
-    const nextDue = computeNextDueDate();
+    const nextDue = computeNextDate(
+      frequency,
+      daysOfWeekMask || null,
+      parseInt(dayOfMonth, 10) || 1,
+      notificationHour,
+      notificationMinute,
+    );
     if (!nextDue) {
       Alert.alert('Could not compute next due date');
       return;
     }
-
-    const daysOfWeek =
-      frequency === 'weekly'
-        ? [...selectedDays].reduce((mask, d) => mask | (1 << d), 0)
-        : 0;
 
     setSaving(true);
     try {
@@ -165,17 +132,18 @@ export default function AddRecurringScreen() {
         to_account_id: toAccountId,
         note,
         frequency,
-        day_of_week: daysOfWeek || null,
+        day_of_week: daysOfWeekMask || null,
         next_due_date: nextDue,
         notification_time: `${String(notificationHour).padStart(2, '0')}:${String(notificationMinute).padStart(2, '0')}`,
         day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) || 1 : null,
       });
+
       router.back();
     } finally {
       setSaving(false);
     }
   }, [label, type, amount, frequency, selectedDays, dayOfMonth, notificationHour, notificationMinute,
-      categoryId, fromAccountId, toAccountId, note, create, computeNextDueDate]);
+      categoryId, fromAccountId, toAccountId, note, create, daysOfWeekMask]);
 
   const filteredCategories = categories.filter((c) => c.type === (type === 'transfer' ? 'expense' : type));
   const isExpense = type === 'expense';

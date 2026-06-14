@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Header } from '@/components/header';
 import { RecurringCard } from '@/components/recurring-card';
 import { SectionHeader } from '@/components/section-header';
 import { Spacing } from '@/constants/theme';
@@ -27,6 +28,7 @@ export default function RecurringScreen() {
     <ThemedView style={styles.screen}>
       <Stack.Screen options={{ title: 'Recurring' }} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Header />
         <Pressable
           style={[styles.addBtn, { backgroundColor: theme.accent }]}
           onPress={() => router.push('/add-recurring')}

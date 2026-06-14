@@ -55,6 +55,7 @@ function FloatingDock(props: TabListProps) {
           <SymbolView name={{ ios: 'plus', android: 'add' }} tintColor="#fff" size={22} weight="bold" />
         </Pressable>
         {children[2]}
+        {children[3]}
       </ThemedView>
     </View>
   );
