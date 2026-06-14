@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Card } from '@/components/card';
+import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -42,8 +43,8 @@ export default function AddTransactionScreen() {
     const parsed = parseFloat(amount);
     if (!parsed || parsed <= 0) return;
     if (type === 'transfer' && (!fromAccountId || !toAccountId)) return;
-    if (type !== 'transfer' && type === 'expense' && !fromAccountId) return;
-    if (type !== 'transfer' && type === 'income' && !toAccountId) return;
+    if (type === 'expense' && !fromAccountId) return;
+    if (type === 'income' && !toAccountId) return;
 
     setSaving(true);
     try {
@@ -65,10 +66,8 @@ export default function AddTransactionScreen() {
   const filteredCategories = categories.filter((c) => c.type === (type === 'transfer' ? 'expense' : type));
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="subtitle" style={styles.title}>Add Transaction</ThemedText>
-
+    <ThemedView style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.typeRow}>
           {TX_TYPES.map((t) => (
             <Pressable
@@ -77,13 +76,13 @@ export default function AddTransactionScreen() {
               style={[
                 styles.typeBtn,
                 {
-                  backgroundColor: type === t.key ? theme.backgroundSelected : theme.backgroundElement,
+                  backgroundColor: type === t.key ? theme.accent : theme.border,
                 },
               ]}
             >
               <ThemedText
                 type="smallBold"
-                style={type === t.key ? { color: theme.text } : { color: theme.textSecondary }}
+                style={{ color: type === t.key ? '#fff' : theme.textSecondary }}
               >
                 {t.label}
               </ThemedText>
@@ -91,39 +90,50 @@ export default function AddTransactionScreen() {
           ))}
         </View>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="0.00"
-          placeholderTextColor={theme.textSecondary}
-          keyboardType="decimal-pad"
-          value={amount}
-          onChangeText={setAmount}
-        />
+        <Card style={styles.amountCard}>
+          <TextInput
+            style={[styles.amountInput, { color: theme.text }]}
+            placeholder="0.00"
+            placeholderTextColor={theme.textTertiary}
+            keyboardType="decimal-pad"
+            value={amount}
+            onChangeText={setAmount}
+            autoFocus
+          />
+          <ThemedText type="hero" style={[styles.currencySign, { color: theme.textTertiary }]}>₱</ThemedText>
+        </Card>
 
         {type !== 'transfer' ? (
-          <View style={styles.chipRow}>
-            {filteredCategories.map((cat) => (
-              <Pressable
-                key={cat.id}
-                onPress={() => setCategoryId(categoryId === cat.id ? null : cat.id)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: categoryId === cat.id ? cat.color : theme.backgroundElement,
-                  },
-                ]}
-              >
-                <ThemedText type="small">
-                  {cat.icon} {cat.name}
-                </ThemedText>
-              </Pressable>
-            ))}
+          <View style={styles.section}>
+            <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+              CATEGORY
+            </ThemedText>
+            <View style={styles.chipRow}>
+              {filteredCategories.map((cat) => (
+                <Pressable
+                  key={cat.id}
+                  onPress={() => setCategoryId(categoryId === cat.id ? null : cat.id)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: categoryId === cat.id ? cat.color : theme.border,
+                    },
+                  ]}
+                >
+                  <ThemedText type="small">
+                    {cat.icon} {cat.name}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
           </View>
         ) : null}
 
-        {type === 'expense' || type === 'transfer' ? (
-          <View style={styles.field}>
-            <ThemedText type="smallBold">From Account</ThemedText>
+        {(type === 'expense' || type === 'transfer') ? (
+          <View style={styles.section}>
+            <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+              FROM ACCOUNT
+            </ThemedText>
             <View style={styles.chipRow}>
               {accounts.map((acc) => (
                 <Pressable
@@ -132,7 +142,7 @@ export default function AddTransactionScreen() {
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: fromAccountId === acc.id ? acc.color : theme.backgroundElement,
+                      backgroundColor: fromAccountId === acc.id ? acc.color : theme.border,
                     },
                   ]}
                 >
@@ -143,9 +153,11 @@ export default function AddTransactionScreen() {
           </View>
         ) : null}
 
-        {type === 'income' || type === 'transfer' ? (
-          <View style={styles.field}>
-            <ThemedText type="smallBold">To Account</ThemedText>
+        {(type === 'income' || type === 'transfer') ? (
+          <View style={styles.section}>
+            <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+              TO ACCOUNT
+            </ThemedText>
             <View style={styles.chipRow}>
               {accounts.map((acc) => (
                 <Pressable
@@ -154,7 +166,7 @@ export default function AddTransactionScreen() {
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: toAccountId === acc.id ? acc.color : theme.backgroundElement,
+                      backgroundColor: toAccountId === acc.id ? acc.color : theme.border,
                     },
                   ]}
                 >
@@ -165,34 +177,41 @@ export default function AddTransactionScreen() {
           </View>
         ) : null}
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="Note (optional)"
-          placeholderTextColor={theme.textSecondary}
-          value={note}
-          onChangeText={setNote}
-        />
+        <View style={styles.section}>
+          <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+            NOTE
+          </ThemedText>
+          <TextInput
+            style={[styles.textInput, { backgroundColor: theme.border, color: theme.text }]}
+            placeholder="Add a note..."
+            placeholderTextColor={theme.textTertiary}
+            value={note}
+            onChangeText={setNote}
+          />
+        </View>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={theme.textSecondary}
-          value={date}
-          onChangeText={setDate}
-        />
+        <View style={styles.section}>
+          <ThemedText type="smallBold" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+            DATE
+          </ThemedText>
+          <TextInput
+            style={[styles.textInput, { backgroundColor: theme.border, color: theme.text }]}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={theme.textTertiary}
+            value={date}
+            onChangeText={setDate}
+          />
+        </View>
 
         <Pressable
           onPress={handleSave}
           disabled={saving}
           style={[
             styles.saveBtn,
-            { backgroundColor: theme.text, opacity: saving ? 0.5 : 1 },
+            { backgroundColor: theme.accent, opacity: saving ? 0.5 : 1 },
           ]}
         >
-          <ThemedText
-            type="smallBold"
-            style={{ color: theme.background, textAlign: 'center' }}
-          >
+          <ThemedText type="smallBold" style={styles.saveText}>
             {saving ? 'Saving...' : 'Save Transaction'}
           </ThemedText>
         </Pressable>
@@ -202,36 +221,69 @@ export default function AddTransactionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: Spacing.four, gap: Spacing.three },
-  title: { marginBottom: Spacing.two },
-  typeRow: { flexDirection: 'row', gap: Spacing.one },
+  screen: { flex: 1 },
+  scrollContent: {
+    padding: Spacing.three,
+    gap: Spacing.three,
+    paddingTop: Spacing.three,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   typeBtn: {
     flex: 1,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.button,
     alignItems: 'center',
   },
-  input: {
-    fontSize: 24,
+  amountCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xxl,
+  },
+  amountInput: {
+    fontSize: 40,
     fontWeight: '700',
-    padding: Spacing.three,
-    borderRadius: Spacing.two,
+    textAlign: 'center',
+    minWidth: 200,
+    fontVariant: ['tabular-nums'],
+  },
+  currencySign: {
+    fontSize: 28,
+  },
+  section: {
+    gap: Spacing.sm,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.one,
+    gap: Spacing.sm,
   },
   chip: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderRadius: Spacing.five,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.button,
   },
-  field: { gap: Spacing.one },
+  textInput: {
+    fontSize: 15,
+    padding: Spacing.lg,
+    borderRadius: Radii.input,
+  },
   saveBtn: {
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.two,
-    marginTop: Spacing.two,
+    paddingVertical: Spacing.lg,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  saveText: {
+    color: '#FFFFFF',
+    fontSize: 15,
   },
 });

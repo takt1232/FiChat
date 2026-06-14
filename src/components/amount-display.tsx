@@ -1,25 +1,28 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 import { formatCurrency } from '@/constants/currency';
 import { useTheme } from '@/hooks/use-theme';
-import { ThemeColor } from '@/constants/theme';
 
 interface AmountDisplayProps extends TextProps {
   amount: number;
   showSign?: boolean;
-  themeColor?: ThemeColor;
+  accent?: boolean;
 }
 
-export function AmountDisplay({ amount, showSign, themeColor, style, ...rest }: AmountDisplayProps) {
+export function AmountDisplay({ amount, showSign, accent, style, ...rest }: AmountDisplayProps) {
   const theme = useTheme();
   const isNegative = amount < 0;
 
-  const color = isNegative ? '#E74C3C' : '#2ECC71';
+  const color = accent
+    ? theme.accent
+    : isNegative
+      ? theme.expense
+      : theme.income;
 
   return (
     <Text
       style={[
         styles.amount,
-        { color: themeColor ? theme[themeColor] : color },
+        { color },
         style,
       ]}
       {...rest}

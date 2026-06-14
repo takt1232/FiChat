@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AmountDisplay } from '@/components/amount-display';
-import { Spacing } from '@/constants/theme';
+import { Card } from '@/components/card';
+import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useGoals } from '@/hooks/use-goals';
 import { Goal } from '@/types';
@@ -37,103 +38,141 @@ export default function GoalDetailScreen() {
 
   const progress = Math.min(goal.current_amount / goal.target_amount, 1);
   const remaining = Math.max(goal.target_amount - goal.current_amount, 0);
+  const progressPercent = Math.round(progress * 100);
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.screen}>
       <Stack.Screen options={{ title: goal.name }} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedView type="backgroundElement" style={styles.header}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Card elevated style={styles.headerCard}>
           <ThemedText style={styles.icon}>{goal.icon}</ThemedText>
           <ThemedText type="title" style={styles.name}>{goal.name}</ThemedText>
           {goal.deadline ? (
-            <ThemedText type="small" themeColor="textSecondary">
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
               Due {goal.deadline}
             </ThemedText>
           ) : null}
-        </ThemedView>
+        </Card>
 
-        <View style={styles.progressSection}>
-          <View style={styles.progressRow}>
-            <AmountDisplay amount={goal.current_amount} style={styles.currentAmount} />
-            <ThemedText type="default" themeColor="textSecondary">
-              of {goal.target_amount.toLocaleString()}
+        <Card style={styles.progressCard}>
+          <View style={styles.amountRow}>
+            <AmountDisplay amount={goal.current_amount} style={styles.currentAmount} accent />
+            <ThemedText type="default" style={{ color: theme.textSecondary }}>
+              of ₱{goal.target_amount.toLocaleString()}
             </ThemedText>
           </View>
 
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarBg, { backgroundColor: theme.backgroundSelected }]}>
+          <View style={styles.progressRow}>
+            <View style={[styles.track, { backgroundColor: theme.border }]}>
               <View
                 style={[
-                  styles.progressBarFill,
-                  { width: `${Math.round(progress * 100)}%` as any, backgroundColor: goal.color },
+                  styles.fill,
+                  { width: `${progressPercent}%` as any, backgroundColor: goal.color },
                 ]}
               />
             </View>
             <ThemedText type="smallBold" style={[styles.percent, { color: goal.color }]}>
-              {Math.round(progress * 100)}%
+              {progressPercent}%
             </ThemedText>
           </View>
 
-          <ThemedText type="small" themeColor="textSecondary">
+          <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
             {remaining > 0
-              ? `${remaining.toLocaleString()} remaining`
+              ? `₱${remaining.toLocaleString()} remaining`
               : 'Goal completed!'}
           </ThemedText>
-        </View>
+        </Card>
 
-        <ThemedView type="backgroundElement" style={styles.addSection}>
-          <ThemedText type="default" style={{ fontWeight: '600' }}>Add Progress</ThemedText>
-          <View style={styles.addRow}>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.backgroundSelected, color: theme.text }]}
-              placeholder="Amount"
-              placeholderTextColor={theme.textSecondary}
-              keyboardType="decimal-pad"
-              value={addAmount}
-              onChangeText={setAddAmount}
-            />
-            <Pressable
-              onPress={handleAdd}
-              style={[styles.addBtn, { backgroundColor: goal.color }]}
-            >
-              <ThemedText type="smallBold" style={{ color: '#fff' }}>Add</ThemedText>
-            </Pressable>
-          </View>
-        </ThemedView>
+        {remaining > 0 && (
+          <Card style={styles.addCard}>
+            <ThemedText type="default" style={styles.addTitle}>Add Progress</ThemedText>
+            <View style={styles.addRow}>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.border, color: theme.text }]}
+                placeholder="Amount"
+                placeholderTextColor={theme.textTertiary}
+                keyboardType="decimal-pad"
+                value={addAmount}
+                onChangeText={setAddAmount}
+              />
+              <Pressable
+                onPress={handleAdd}
+                style={[styles.addBtn, { backgroundColor: goal.color }]}
+              >
+                <ThemedText type="smallBold" style={{ color: '#fff' }}>Add</ThemedText>
+              </Pressable>
+            </View>
+          </Card>
+        )}
       </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: Spacing.four, gap: Spacing.three },
-  header: {
+  screen: { flex: 1 },
+  scrollContent: {
+    padding: Spacing.three,
+    gap: Spacing.three,
+    paddingTop: Spacing.three,
+  },
+  headerCard: {
     alignItems: 'center',
-    padding: Spacing.four,
-    borderRadius: Spacing.three,
-    gap: Spacing.one,
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.sm,
   },
   icon: { fontSize: 48 },
   name: { fontSize: 24, textAlign: 'center' },
-  progressSection: { gap: Spacing.two },
-  progressRow: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.one },
+  progressCard: {
+    gap: Spacing.lg,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: Spacing.sm,
+    justifyContent: 'center',
+  },
   currentAmount: { fontSize: 28 },
-  progressBarContainer: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  progressBarBg: { flex: 1, height: 12, borderRadius: 6, overflow: 'hidden' },
-  progressBarFill: { height: '100%', borderRadius: 6 },
-  percent: { width: 44, textAlign: 'right', fontSize: 16 },
-  addSection: { padding: Spacing.three, borderRadius: Spacing.two, gap: Spacing.two },
-  addRow: { flexDirection: 'row', gap: Spacing.two },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  track: {
+    flex: 1,
+    height: 8,
+    borderRadius: Radii.progress,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: Radii.progress,
+  },
+  percent: {
+    fontSize: 14,
+    fontWeight: '700',
+    width: 36,
+    textAlign: 'right',
+  },
+  addCard: {
+    gap: Spacing.md,
+  },
+  addTitle: {
+    fontWeight: '600',
+  },
+  addRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   input: {
     flex: 1,
-    fontSize: 16,
-    padding: Spacing.two,
-    borderRadius: Spacing.two,
+    fontSize: 15,
+    padding: Spacing.md,
+    borderRadius: Radii.input,
   },
   addBtn: {
-    paddingHorizontal: Spacing.four,
-    borderRadius: Spacing.two,
+    paddingHorizontal: Spacing.xxl,
+    borderRadius: Radii.button,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Card } from '@/components/card';
+import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { AccountType } from '@/types';
@@ -37,20 +38,25 @@ export default function AddAccountScreen() {
   }, [name, type, balance, selectedIcon, create]);
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="subtitle" style={styles.title}>Add Account</ThemedText>
+    <ThemedView style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Card>
+          <ThemedText type="smallBold" style={[styles.label, { color: theme.textSecondary }]}>
+            ACCOUNT NAME
+          </ThemedText>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.border, color: theme.text }]}
+            placeholder="e.g. BDO Savings"
+            placeholderTextColor={theme.textTertiary}
+            value={name}
+            onChangeText={setName}
+          />
+        </Card>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="Account Name"
-          placeholderTextColor={theme.textSecondary}
-          value={name}
-          onChangeText={setName}
-        />
-
-        <View style={styles.field}>
-          <ThemedText type="smallBold">Account Type</ThemedText>
+        <Card>
+          <ThemedText type="smallBold" style={[styles.label, { color: theme.textSecondary }]}>
+            TYPE
+          </ThemedText>
           <View style={styles.chipRow}>
             {ACCOUNT_ICONS.map((a) => (
               <Pressable
@@ -59,7 +65,7 @@ export default function AddAccountScreen() {
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: type === a.type ? a.color : theme.backgroundElement,
+                    backgroundColor: type === a.type ? a.color : theme.border,
                   },
                 ]}
               >
@@ -67,29 +73,31 @@ export default function AddAccountScreen() {
               </Pressable>
             ))}
           </View>
-        </View>
+        </Card>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="Initial Balance (₱0.00)"
-          placeholderTextColor={theme.textSecondary}
-          keyboardType="decimal-pad"
-          value={balance}
-          onChangeText={setBalance}
-        />
+        <Card>
+          <ThemedText type="smallBold" style={[styles.label, { color: theme.textSecondary }]}>
+            INITIAL BALANCE
+          </ThemedText>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.border, color: theme.text }]}
+            placeholder="0.00"
+            placeholderTextColor={theme.textTertiary}
+            keyboardType="decimal-pad"
+            value={balance}
+            onChangeText={setBalance}
+          />
+        </Card>
 
         <Pressable
           onPress={handleSave}
           disabled={saving}
           style={[
             styles.saveBtn,
-            { backgroundColor: theme.text, opacity: saving ? 0.5 : 1 },
+            { backgroundColor: theme.accent, opacity: saving ? 0.5 : 1 },
           ]}
         >
-          <ThemedText
-            type="smallBold"
-            style={{ color: theme.background, textAlign: 'center' }}
-          >
+          <ThemedText type="smallBold" style={styles.saveText}>
             {saving ? 'Saving...' : 'Save Account'}
           </ThemedText>
         </Pressable>
@@ -99,24 +107,39 @@ export default function AddAccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: Spacing.four, gap: Spacing.three },
-  title: { marginBottom: Spacing.two },
-  input: {
-    fontSize: 16,
+  screen: { flex: 1 },
+  scrollContent: {
     padding: Spacing.three,
-    borderRadius: Spacing.two,
+    gap: Spacing.three,
+    paddingTop: Spacing.three,
   },
-  field: { gap: Spacing.one },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  label: {
+    fontSize: 12,
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
+  },
+  input: {
+    fontSize: 15,
+    padding: Spacing.lg,
+    borderRadius: Radii.input,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
   chip: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-    borderRadius: Spacing.five,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.button,
   },
   saveBtn: {
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.two,
-    marginTop: Spacing.two,
+    paddingVertical: Spacing.lg,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+  },
+  saveText: {
+    color: '#FFFFFF',
+    fontSize: 15,
   },
 });

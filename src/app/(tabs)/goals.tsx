@@ -5,6 +5,8 @@ import { useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { GoalCard } from '@/components/goal-card';
+import { SectionHeader } from '@/components/section-header';
+import { Card } from '@/components/card';
 import { Spacing, BottomTabInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useGoals } from '@/hooks/use-goals';
@@ -17,61 +19,80 @@ export default function GoalsScreen() {
 
   useFocusEffect(useCallback(() => { list().then(setGoals); }, [list]));
 
+  const completed = goals.filter((g) => g.current_amount >= g.target_amount).length;
+  const totalProgress = goals.length > 0
+    ? Math.round(goals.reduce((s, g) => s + g.current_amount, 0) / goals.reduce((s, g) => s + g.target_amount, 0) * 100)
+    : 0;
+
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: BottomTabInset + Spacing.three }]}>
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: BottomTabInset + Spacing.three }]}
+      >
         <View style={styles.header}>
-          <ThemedText type="subtitle">Goals</ThemedText>
-          <Pressable
-            style={[styles.fab, { backgroundColor: theme.text }]}
-            onPress={() => router.push('/add-goal')}
-          >
-            <ThemedText style={[styles.fabText, { color: theme.background }]}>+</ThemedText>
-          </Pressable>
+          <ThemedText type="title">Goals</ThemedText>
         </View>
 
-        {goals.length === 0 ? (
-          <ThemedView type="backgroundElement" style={styles.empty}>
-            <ThemedText type="default" themeColor="textSecondary">
-              No goals yet. Tap + to set one.
+        {goals.length > 0 && (
+          <Card elevated style={styles.summaryCard}>
+            <ThemedText type="hero" style={[styles.summaryPercent, { color: theme.accent }]}>
+              {totalProgress}%
+              <ThemedText type="small" style={{ color: theme.textSecondary }}> overall</ThemedText>
             </ThemedText>
-          </ThemedView>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              {completed} of {goals.length} goals completed
+            </ThemedText>
+          </Card>
+        )}
+
+        {goals.length === 0 ? (
+          <View style={styles.empty}>
+            <ThemedText type="default" style={{ color: theme.textSecondary }}>
+              No goals yet.
+            </ThemedText>
+          </View>
         ) : (
-          <View style={styles.list}>
-            {goals.map((g) => (
-              <GoalCard
-                key={g.id}
-                goal={g}
-                onPress={() => router.push(`/goal/${g.id}`)}
-              />
-            ))}
+          <View style={styles.section}>
+            <SectionHeader label={`${goals.length} Goals`} />
+            <View style={styles.list}>
+              {goals.map((g) => (
+                <GoalCard key={g.id} goal={g} onPress={() => router.push(`/goal/${g.id}`)} />
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>
+
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: Spacing.four, gap: Spacing.three },
+  screen: { flex: 1 },
+  scrollContent: {
+    padding: Spacing.three,
+    gap: Spacing.three,
+    paddingTop: Spacing.four,
+  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingTop: Spacing.sm,
   },
-  fab: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  summaryCard: {
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.xs,
   },
-  fabText: { fontSize: 22, fontWeight: '600', marginTop: -2 },
-  list: { gap: Spacing.two },
+  summaryPercent: {
+    fontSize: 34,
+  },
+  section: {
+    gap: Spacing.md,
+  },
+  list: {
+    gap: Spacing.sm,
+  },
   empty: {
-    padding: Spacing.six,
-    borderRadius: Spacing.three,
+    paddingVertical: Spacing.huge,
     alignItems: 'center',
   },
 });

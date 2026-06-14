@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Card } from '@/components/card';
+import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useGoals } from '@/hooks/use-goals';
 
@@ -47,37 +48,52 @@ export default function AddGoalScreen() {
   }, [name, target, deadline, selected, create]);
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="subtitle" style={styles.title}>Add Goal</ThemedText>
+    <ThemedView style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Card>
+          <ThemedText type="smallBold" style={[styles.label, { color: theme.textSecondary }]}>
+            GOAL NAME
+          </ThemedText>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.border, color: theme.text }]}
+            placeholder="e.g. New Laptop"
+            placeholderTextColor={theme.textTertiary}
+            value={name}
+            onChangeText={setName}
+          />
+        </Card>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="Goal Name"
-          placeholderTextColor={theme.textSecondary}
-          value={name}
-          onChangeText={setName}
-        />
+        <Card>
+          <ThemedText type="smallBold" style={[styles.label, { color: theme.textSecondary }]}>
+            TARGET AMOUNT
+          </ThemedText>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.border, color: theme.text }]}
+            placeholder="0.00"
+            placeholderTextColor={theme.textTertiary}
+            keyboardType="decimal-pad"
+            value={target}
+            onChangeText={setTarget}
+          />
+        </Card>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="Target Amount (₱)"
-          placeholderTextColor={theme.textSecondary}
-          keyboardType="decimal-pad"
-          value={target}
-          onChangeText={setTarget}
-        />
+        <Card>
+          <ThemedText type="smallBold" style={[styles.label, { color: theme.textSecondary }]}>
+            DEADLINE (OPTIONAL)
+          </ThemedText>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.border, color: theme.text }]}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={theme.textTertiary}
+            value={deadline}
+            onChangeText={setDeadline}
+          />
+        </Card>
 
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          placeholder="Deadline YYYY-MM-DD (optional)"
-          placeholderTextColor={theme.textSecondary}
-          value={deadline}
-          onChangeText={setDeadline}
-        />
-
-        <View style={styles.field}>
-          <ThemedText type="smallBold">Icon</ThemedText>
+        <Card>
+          <ThemedText type="smallBold" style={[styles.label, { color: theme.textSecondary }]}>
+            ICON
+          </ThemedText>
           <View style={styles.chipRow}>
             {GOAL_ICONS.map((g) => (
               <Pressable
@@ -86,7 +102,7 @@ export default function AddGoalScreen() {
                 style={[
                   styles.iconBtn,
                   {
-                    backgroundColor: selected.icon === g.icon ? g.color : theme.backgroundElement,
+                    backgroundColor: selected.icon === g.icon ? g.color : theme.border,
                   },
                 ]}
               >
@@ -94,20 +110,17 @@ export default function AddGoalScreen() {
               </Pressable>
             ))}
           </View>
-        </View>
+        </Card>
 
         <Pressable
           onPress={handleSave}
           disabled={saving}
           style={[
             styles.saveBtn,
-            { backgroundColor: theme.text, opacity: saving ? 0.5 : 1 },
+            { backgroundColor: theme.accent, opacity: saving ? 0.5 : 1 },
           ]}
         >
-          <ThemedText
-            type="smallBold"
-            style={{ color: theme.background, textAlign: 'center' }}
-          >
+          <ThemedText type="smallBold" style={styles.saveText}>
             {saving ? 'Saving...' : 'Save Goal'}
           </ThemedText>
         </Pressable>
@@ -117,27 +130,42 @@ export default function AddGoalScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: Spacing.four, gap: Spacing.three },
-  title: { marginBottom: Spacing.two },
-  input: {
-    fontSize: 16,
+  screen: { flex: 1 },
+  scrollContent: {
     padding: Spacing.three,
-    borderRadius: Spacing.two,
+    gap: Spacing.three,
+    paddingTop: Spacing.three,
   },
-  field: { gap: Spacing.one },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.one },
+  label: {
+    fontSize: 12,
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
+  },
+  input: {
+    fontSize: 15,
+    padding: Spacing.lg,
+    borderRadius: Radii.input,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
   iconBtn: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.icon,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconEmoji: { fontSize: 22 },
   saveBtn: {
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.two,
-    marginTop: Spacing.two,
+    paddingVertical: Spacing.lg,
+    borderRadius: Radii.button,
+    alignItems: 'center',
+  },
+  saveText: {
+    color: '#FFFFFF',
+    fontSize: 15,
   },
 });

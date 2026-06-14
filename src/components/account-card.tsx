@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AmountDisplay } from '@/components/amount-display';
+import { IconContainer } from '@/components/icon-container';
+import { Card } from '@/components/card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { Account } from '@/types';
@@ -8,62 +10,94 @@ import { Account } from '@/types';
 interface AccountCardProps {
   account: Account;
   onPress?: () => void;
+  compact?: boolean;
 }
 
-export function AccountCard({ account, onPress }: AccountCardProps) {
+export function AccountCard({ account, onPress, compact }: AccountCardProps) {
   const theme = useTheme();
 
+  if (compact) {
+    return (
+      <Pressable onPress={onPress}>
+        {({ pressed }) => (
+          <Card
+            style={[
+              styles.compactCard,
+              pressed && { backgroundColor: theme.cardSelected },
+            ]}
+          >
+            <IconContainer icon={account.icon} color={account.color} size={36} />
+            <View style={styles.compactInfo}>
+              <ThemedText style={styles.compactName} numberOfLines={1}>{account.name}</ThemedText>
+              <AmountDisplay amount={account.balance} style={styles.compactBalance} />
+            </View>
+          </Card>
+        )}
+      </Pressable>
+    );
+  }
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: theme.backgroundElement,
-          borderLeftColor: account.color,
-        },
-        pressed && { opacity: 0.7 },
-      ]}
-    >
-      <View style={styles.header}>
-        <ThemedText style={styles.icon}>{account.icon}</ThemedText>
-        <View style={styles.headerInfo}>
-          <ThemedText type="default" style={styles.name}>
-            {account.name}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" style={{ textTransform: 'capitalize' }}>
-            {account.type}
-          </ThemedText>
-        </View>
-      </View>
-      <AmountDisplay amount={account.balance} style={styles.balance} />
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <Card
+          style={[
+            styles.card,
+            pressed && { backgroundColor: theme.cardSelected },
+          ]}
+        >
+          <View style={styles.row}>
+            <IconContainer icon={account.icon} color={account.color} size={40} />
+            <View style={styles.info}>
+              <ThemedText style={styles.name}>{account.name}</ThemedText>
+              <ThemedText type="small" style={[styles.type, { color: theme.textSecondary }]}>
+                {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
+              </ThemedText>
+            </View>
+            <AmountDisplay amount={account.balance} style={styles.balance} accent />
+          </View>
+        </Card>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: Spacing.three,
-    borderRadius: Spacing.two,
-    borderLeftWidth: 4,
-    gap: Spacing.two,
-  },
-  header: {
+  card: {},
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.md,
   },
-  icon: {
-    fontSize: 24,
-  },
-  headerInfo: {
+  info: {
+    flex: 1,
     gap: 2,
   },
   name: {
     fontWeight: '600',
+    fontSize: 15,
+  },
+  type: {
+    fontSize: 13,
+    textTransform: 'capitalize',
   },
   balance: {
-    fontSize: 20,
-    textAlign: 'right',
+    fontSize: 17,
+  },
+  compactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  compactInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  compactName: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  compactBalance: {
+    fontSize: 15,
   },
 });

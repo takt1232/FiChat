@@ -6,11 +6,22 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AmountDisplay } from '@/components/amount-display';
 import { TransactionItem } from '@/components/transaction-item';
+import { Card } from '@/components/card';
+import { SectionHeader } from '@/components/section-header';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useTransactions, TransactionRow } from '@/hooks/use-transactions';
 import { Account } from '@/types';
+
+function groupByDate(transactions: TransactionRow[]): Record<string, TransactionRow[]> {
+  const groups: Record<string, TransactionRow[]> = {};
+  for (const tx of transactions) {
+    if (!groups[tx.date]) groups[tx.date] = [];
+    groups[tx.date].push(tx);
+  }
+  return groups;
+}
 
 export default function AccountDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,27 +42,37 @@ export default function AccountDetailScreen() {
 
   if (!account) return null;
 
-  return (
-    <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: account.name }} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <ThemedView type="backgroundElement" style={styles.header}>
-          <ThemedText style={styles.icon}>{account.icon}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" style={{ textTransform: 'capitalize' }}>
-            {account.type}
-          </ThemedText>
-          <AmountDisplay amount={account.balance} style={styles.balance} />
-        </ThemedView>
+  const grouped = groupByDate(transactions);
 
-        <ThemedText type="default" style={styles.sectionTitle}>Transactions</ThemedText>
-        {transactions.length === 0 ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            No transactions yet.
+  return (
+    <ThemedView style={styles.screen}>
+      <Stack.Screen options={{ title: account.name }} />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Card elevated style={styles.headerCard}>
+          <ThemedText style={styles.icon}>{account.icon}</ThemedText>
+          <ThemedText type="small" style={[styles.type, { color: theme.textSecondary }]}>
+            {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
           </ThemedText>
+          <AmountDisplay amount={account.balance} style={styles.balance} accent />
+        </Card>
+
+        {transactions.length === 0 ? (
+          <View style={styles.empty}>
+            <ThemedText type="default" style={{ color: theme.textSecondary }}>
+              No transactions yet.
+            </ThemedText>
+          </View>
         ) : (
-          <View style={styles.txList}>
-            {transactions.map((tx) => (
-              <TransactionItem key={tx.id} transaction={tx} />
+          <View style={styles.section}>
+            {Object.entries(grouped).map(([date, txs]) => (
+              <View key={date} style={styles.dateGroup}>
+                <SectionHeader label={date} />
+                <View style={styles.txList}>
+                  {txs.map((tx) => (
+                    <TransactionItem key={tx.id} transaction={tx} />
+                  ))}
+                </View>
+              </View>
             ))}
           </View>
         )}
@@ -61,16 +82,34 @@ export default function AccountDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: Spacing.four, gap: Spacing.three },
-  header: {
+  screen: { flex: 1 },
+  scrollContent: {
+    padding: Spacing.three,
+    gap: Spacing.three,
+    paddingTop: Spacing.three,
+  },
+  headerCard: {
     alignItems: 'center',
-    padding: Spacing.four,
-    borderRadius: Spacing.three,
-    gap: Spacing.one,
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.sm,
   },
   icon: { fontSize: 40 },
-  balance: { fontSize: 28 },
-  sectionTitle: { fontWeight: '600', marginTop: Spacing.one },
-  txList: { gap: Spacing.one },
+  type: {
+    fontSize: 13,
+    textTransform: 'capitalize',
+  },
+  balance: { fontSize: 30 },
+  section: {
+    gap: Spacing.lg,
+  },
+  dateGroup: {
+    gap: Spacing.md,
+  },
+  txList: {
+    gap: Spacing.sm,
+  },
+  empty: {
+    paddingVertical: Spacing.huge,
+    alignItems: 'center',
+  },
 });

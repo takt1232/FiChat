@@ -1,7 +1,9 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AmountDisplay } from '@/components/amount-display';
-import { Spacing } from '@/constants/theme';
+import { IconContainer } from '@/components/icon-container';
+import { Card } from '@/components/card';
+import { Spacing, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { Goal } from '@/types';
 
@@ -16,99 +18,101 @@ export function GoalCard({ goal, onPress }: GoalCardProps) {
   const progressPercent = Math.round(progress * 100);
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: theme.backgroundElement },
-        pressed && { opacity: 0.7 },
-      ]}
-    >
-      <View style={styles.header}>
-        <ThemedText style={styles.icon}>{goal.icon}</ThemedText>
-        <View style={styles.headerInfo}>
-          <ThemedText type="default" style={styles.name}>
-            {goal.name}
-          </ThemedText>
-          {goal.deadline ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              Due {goal.deadline}
-            </ThemedText>
-          ) : null}
-        </View>
-        <View style={styles.amounts}>
-          <AmountDisplay amount={goal.current_amount} style={styles.currentAmount} />
-          <ThemedText type="small" themeColor="textSecondary">
-            of {goal.target_amount.toLocaleString()}
-          </ThemedText>
-        </View>
-      </View>
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <Card
+          style={[
+            styles.card,
+            pressed && { backgroundColor: theme.cardSelected },
+          ]}
+        >
+          <View style={styles.row}>
+            <IconContainer icon={goal.icon} color={goal.color} size={40} />
+            <View style={styles.info}>
+              <ThemedText style={styles.name}>{goal.name}</ThemedText>
+              {goal.deadline ? (
+                <ThemedText type="small" style={[styles.deadline, { color: theme.textSecondary }]}>
+                  Due {goal.deadline}
+                </ThemedText>
+              ) : null}
+            </View>
+            <View style={styles.amounts}>
+              <AmountDisplay amount={goal.current_amount} style={styles.current} accent />
+              <ThemedText type="small" style={[styles.target, { color: theme.textTertiary }]}>
+                of ₱{goal.target_amount.toLocaleString()}
+              </ThemedText>
+            </View>
+          </View>
 
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBarBg, { backgroundColor: theme.backgroundSelected }]}>
-          <View
-            style={[
-              styles.progressBarFill,
-              {
-                width: `${progressPercent}%` as any,
-                backgroundColor: goal.color,
-              },
-            ]}
-          />
-        </View>
-        <ThemedText type="small" style={[styles.percent, { color: goal.color }]}>
-          {progressPercent}%
-        </ThemedText>
-      </View>
+          <View style={styles.progressRow}>
+            <View style={[styles.track, { backgroundColor: theme.border }]}>
+              <View
+                style={[
+                  styles.fill,
+                  {
+                    width: `${progressPercent}%` as any,
+                    backgroundColor: goal.color,
+                  },
+                ]}
+              />
+            </View>
+            <ThemedText type="small" style={[styles.percent, { color: goal.color }]}>
+              {progressPercent}%
+            </ThemedText>
+          </View>
+        </Card>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: Spacing.three,
-    borderRadius: Spacing.two,
-    gap: Spacing.two,
-  },
-  header: {
+  card: {},
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.md,
   },
-  icon: {
-    fontSize: 24,
-  },
-  headerInfo: {
+  info: {
     flex: 1,
     gap: 2,
   },
   name: {
     fontWeight: '600',
+    fontSize: 15,
+  },
+  deadline: {
+    fontSize: 13,
   },
   amounts: {
     alignItems: 'flex-end',
   },
-  currentAmount: {
-    fontSize: 18,
+  current: {
+    fontSize: 16,
   },
-  progressBarContainer: {
+  target: {
+    fontSize: 12,
+  },
+  progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.md,
+    marginTop: Spacing.md,
   },
-  progressBarBg: {
+  track: {
     flex: 1,
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: Radii.progress,
     overflow: 'hidden',
   },
-  progressBarFill: {
+  fill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.progress,
   },
   percent: {
     fontWeight: '700',
-    width: 36,
+    fontSize: 12,
+    width: 32,
     textAlign: 'right',
   },
 });

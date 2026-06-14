@@ -5,6 +5,8 @@ import { useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AccountCard } from '@/components/account-card';
+import { SectionHeader } from '@/components/section-header';
+import { Card } from '@/components/card';
 import { Spacing, BottomTabInset } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -12,66 +14,93 @@ import { Account } from '@/types';
 
 export default function AccountsScreen() {
   const theme = useTheme();
-  const { list } = useAccounts();
+  const { list, totalBalance } = useAccounts();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [total, setTotal] = useState(0);
 
-  useFocusEffect(useCallback(() => { list().then(setAccounts); }, [list]));
+  useFocusEffect(
+    useCallback(() => {
+      list().then(setAccounts);
+      totalBalance().then(setTotal);
+    }, [list, totalBalance]),
+  );
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: BottomTabInset + Spacing.three }]}>
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: BottomTabInset + Spacing.three }]}
+      >
         <View style={styles.header}>
-          <ThemedText type="subtitle">Accounts</ThemedText>
-          <Pressable
-            style={[styles.fab, { backgroundColor: theme.text }]}
-            onPress={() => router.push('/add-account')}
-          >
-            <ThemedText style={[styles.fabText, { color: theme.background }]}>+</ThemedText>
-          </Pressable>
+          <ThemedText type="title">Accounts</ThemedText>
         </View>
 
-        {accounts.length === 0 ? (
-          <ThemedView type="backgroundElement" style={styles.empty}>
-            <ThemedText type="default" themeColor="textSecondary">
-              No accounts yet. Tap + to add one.
+        {accounts.length > 0 && (
+          <Card elevated style={styles.summaryCard}>
+            <ThemedText type="small" style={[styles.summaryLabel, { color: theme.textSecondary }]}>
+              Combined Balance
             </ThemedText>
-          </ThemedView>
+            <ThemedText type="hero" style={[styles.summaryAmount, { color: theme.accent }]}>
+              ₱{total.toLocaleString()}
+            </ThemedText>
+          </Card>
+        )}
+
+        {accounts.length === 0 ? (
+          <View style={styles.empty}>
+            <ThemedText type="default" style={{ color: theme.textSecondary }}>
+              No accounts yet.
+            </ThemedText>
+          </View>
         ) : (
-          <View style={styles.list}>
-            {accounts.map((acc) => (
-              <AccountCard
-                key={acc.id}
-                account={acc}
-                onPress={() => router.push(`/account/${acc.id}`)}
-              />
-            ))}
+          <View style={styles.section}>
+            <SectionHeader label={`${accounts.length} Accounts`} />
+            <View style={styles.list}>
+              {accounts.map((acc) => (
+                <AccountCard
+                  key={acc.id}
+                  account={acc}
+                  onPress={() => router.push(`/account/${acc.id}`)}
+                />
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>
+
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: Spacing.four, gap: Spacing.three },
+  screen: { flex: 1 },
+  scrollContent: {
+    padding: Spacing.three,
+    gap: Spacing.three,
+    paddingTop: Spacing.four,
+  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingTop: Spacing.sm,
   },
-  fab: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  summaryCard: {
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.xs,
   },
-  fabText: { fontSize: 22, fontWeight: '600', marginTop: -2 },
-  list: { gap: Spacing.two },
+  summaryLabel: {
+    fontSize: 13,
+    letterSpacing: 0.3,
+  },
+  summaryAmount: {
+    fontSize: 34,
+  },
+  section: {
+    gap: Spacing.md,
+  },
+  list: {
+    gap: Spacing.sm,
+  },
   empty: {
-    padding: Spacing.six,
-    borderRadius: Spacing.three,
+    paddingVertical: Spacing.huge,
     alignItems: 'center',
   },
 });

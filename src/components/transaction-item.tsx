@@ -1,9 +1,11 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AmountDisplay } from '@/components/amount-display';
+import { IconContainer } from '@/components/icon-container';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { TransactionRow } from '@/hooks/use-transactions';
+import { Card } from '@/components/card';
 
 interface TransactionItemProps {
   transaction: TransactionRow;
@@ -12,10 +14,7 @@ interface TransactionItemProps {
 
 export function TransactionItem({ transaction, onPress }: TransactionItemProps) {
   const theme = useTheme();
-
-  const typeLabel =
-    transaction.type === 'income' ? '→' :
-    transaction.type === 'expense' ? '←' : '⇄';
+  const categoryColor = '#00C4B4';
 
   const accountLabel =
     transaction.type === 'transfer'
@@ -25,45 +24,41 @@ export function TransactionItem({ transaction, onPress }: TransactionItemProps) 
         : transaction.from_account_name ?? '';
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.container,
-        { backgroundColor: theme.backgroundElement },
-        pressed && { opacity: 0.7 },
-      ]}
-    >
-      <View style={styles.left}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.backgroundSelected }]}>
-          <ThemedText style={styles.icon}>
-            {transaction.category_icon ?? '📄'}
-          </ThemedText>
-        </View>
-        <View style={styles.info}>
-          <ThemedText type="default" style={styles.categoryName}>
-            {transaction.category_name ?? (transaction.note || 'Untitled')}
-          </ThemedText>
-          {accountLabel ? (
-            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-              {accountLabel}
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <Card
+          style={[
+            styles.container,
+            pressed && { backgroundColor: theme.cardSelected },
+          ]}
+        >
+          <IconContainer
+            icon={transaction.category_icon ?? '📄'}
+            color={categoryColor}
+            size={40}
+          />
+          <View style={styles.info}>
+            <ThemedText style={styles.name} numberOfLines={1}>
+              {transaction.category_name ?? (transaction.note || 'Untitled')}
             </ThemedText>
-          ) : null}
-          {transaction.note ? (
-            <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-              {transaction.note}
+            {accountLabel ? (
+              <ThemedText type="small" style={[styles.subtitle, { color: theme.textSecondary }]} numberOfLines={1}>
+                {accountLabel}
+              </ThemedText>
+            ) : null}
+          </View>
+          <View style={styles.right}>
+            <AmountDisplay
+              amount={transaction.type === 'expense' ? -transaction.amount : transaction.amount}
+              showSign
+              style={styles.value}
+            />
+            <ThemedText type="small" style={[styles.date, { color: theme.textTertiary }]}>
+              {transaction.date}
             </ThemedText>
-          ) : null}
-        </View>
-      </View>
-      <View style={styles.right}>
-        <AmountDisplay
-          amount={transaction.type === 'expense' ? -transaction.amount : transaction.amount}
-          showSign
-        />
-        <ThemedText type="small" themeColor="textSecondary">
-          {typeLabel} {transaction.date}
-        </ThemedText>
-      </View>
+          </View>
+        </Card>
+      )}
     </Pressable>
   );
 }
@@ -72,36 +67,27 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: Spacing.two,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 18,
+    gap: Spacing.md,
   },
   info: {
     flex: 1,
     gap: 2,
   },
-  categoryName: {
+  name: {
     fontWeight: '600',
+    fontSize: 15,
+  },
+  subtitle: {
+    fontSize: 13,
   },
   right: {
     alignItems: 'flex-end',
     gap: 2,
+  },
+  value: {
+    fontSize: 15,
+  },
+  date: {
+    fontSize: 12,
   },
 });
