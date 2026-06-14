@@ -34,11 +34,19 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "06d53d59-17cd-45c3-9f67-2e6ac59140b7"
+      }
+    },
+    "owner": "sixdaggers"
   }
 }
