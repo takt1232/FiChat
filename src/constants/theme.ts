@@ -47,54 +47,6 @@ export const Radii = {
   progress: 999,
 } as const;
 
-export const Shadows = Platform.select({
-  ios: {
-    card: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 12,
-    },
-    elevated: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 16,
-    },
-    fab: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-    },
-  },
-  android: {
-    card: { elevation: 2 },
-    elevated: { elevation: 6 },
-    fab: { elevation: 8 },
-  },
-  web: {
-    card: {
-      shadowColor: 'rgba(0,0,0,0.06)',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 1,
-      shadowRadius: 12,
-    },
-    elevated: {
-      shadowColor: 'rgba(0,0,0,0.1)',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 1,
-      shadowRadius: 16,
-    },
-    fab: {
-      shadowColor: 'rgba(0,0,0,0.15)',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 1,
-      shadowRadius: 12,
-    },
-  },
-}) as Record<string, any>;
-
 export const Fonts = Platform.select({
   ios: {
     sans: 'system-ui',

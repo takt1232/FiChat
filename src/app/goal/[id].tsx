@@ -44,7 +44,7 @@ export default function GoalDetailScreen() {
     <ThemedView style={styles.screen}>
       <Stack.Screen options={{ title: goal.name }} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Card elevated style={styles.headerCard}>
+        <Card style={styles.headerCard}>
           <ThemedText style={styles.icon}>{goal.icon}</ThemedText>
           <ThemedText type="title" style={styles.name}>{goal.name}</ThemedText>
           {goal.deadline ? (

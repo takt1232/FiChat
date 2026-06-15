@@ -1,4 +1,4 @@
-import { Colors, Shadows, type ThemeColor } from '@/constants/theme';
+import { Colors, type ThemeColor } from '@/constants/theme';
 import { useThemeMode } from '@/context/ThemeContext';
 
 export function useTheme() {
@@ -6,9 +6,6 @@ export function useTheme() {
 
   return {
     ...Colors[theme],
-    shadow: Shadows.card,
-    shadowElevated: Shadows.elevated,
-    shadowFab: Shadows.fab,
   };
 }
 

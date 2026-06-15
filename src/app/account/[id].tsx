@@ -49,7 +49,7 @@ export default function AccountDetailScreen() {
     <ThemedView style={styles.screen}>
       <Stack.Screen options={{ title: account.name }} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Card elevated style={styles.headerCard}>
+        <Card style={styles.headerCard}>
           <View style={styles.headerIconRow}>
             <ThemedText style={styles.icon}>{account.icon}</ThemedText>
             <Pressable onPress={() => router.push(`/edit-account/${account.id}`)}>

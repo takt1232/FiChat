@@ -4,10 +4,9 @@ import { useTheme } from '@/hooks/use-theme';
 
 interface CardProps extends ViewProps {
   padded?: boolean;
-  elevated?: boolean;
 }
 
-export function Card({ style, padded = true, elevated, children, ...rest }: CardProps) {
+export function Card({ style, padded = true, children, ...rest }: CardProps) {
   const theme = useTheme();
 
   return (
@@ -16,9 +15,7 @@ export function Card({ style, padded = true, elevated, children, ...rest }: Card
         styles.card,
         {
           backgroundColor: theme.card,
-          ...theme.shadow,
         },
-        elevated && { ...theme.shadowElevated },
         padded && styles.padded,
         style,
       ]}
