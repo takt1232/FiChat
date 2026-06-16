@@ -114,6 +114,32 @@ export async function cancelNotificationForRecurringId(
   } catch {}
 }
 
+export async function scheduleTestNotification(
+  title: string,
+  body: string,
+  secondsFromNow: number,
+): Promise<string | null> {
+  if (!Notifications) return null;
+  try {
+    const fireDate = new Date(Date.now() + secondsFromNow * 1000);
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { test: true },
+        ...(Platform.OS === 'android' ? { channelId: 'recurring' } : {}),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: fireDate,
+      },
+    });
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 export function addNotificationResponseListener(
   handler: (recurringId: number) => void,
 ): { remove: () => void } {
