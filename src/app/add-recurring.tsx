@@ -19,6 +19,7 @@ import { Card } from '@/components/card';
 import { PickerModal, PickerOption } from '@/components/picker-modal';
 import { Spacing, Radii } from '@/constants/theme';
 import { computeNextDate } from '@/constants/format';
+import { scheduleRecurringNotification } from '@/services/notifications';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useCategories } from '@/hooks/use-categories';
@@ -123,7 +124,7 @@ export default function AddRecurringScreen() {
 
     setSaving(true);
     try {
-      await create({
+      const id = await create({
         label: label.trim(),
         type,
         amount: parsed,
@@ -134,9 +135,11 @@ export default function AddRecurringScreen() {
         frequency,
         day_of_week: daysOfWeekMask || null,
         next_due_date: nextDue,
-        notification_time: `${String(notificationHour).padStart(2, '0')}:${String(notificationMinute).padStart(2, '0')}`,
+        notification_time: timeStr,
         day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) || 1 : null,
       });
+
+      scheduleRecurringNotification(id, label.trim(), nextDue, timeStr);
 
       router.back();
     } finally {

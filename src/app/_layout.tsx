@@ -7,10 +7,12 @@ import { useEffect } from 'react';
 import { ThemeProvider as AppThemeProvider, useThemeMode } from '@/context/ThemeContext';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { migrateDbIfNeeded } from '@/db/database';
-import { requestPermissions, addNotificationResponseListener } from '@/services/notifications';
+import { requestPermissions, addNotificationResponseListener, cancelAllRecurring, scheduleRecurringNotification } from '@/services/notifications';
+import { useRecurring } from '@/hooks/use-recurring';
 
 function RootLayoutInner() {
   const { theme } = useThemeMode();
+  const { list: listRecurring } = useRecurring();
 
   useEffect(() => {
     requestPermissions();
@@ -19,6 +21,22 @@ function RootLayoutInner() {
     });
     return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      await cancelAllRecurring();
+      const items = await listRecurring();
+      for (const item of items) {
+        if (!item.is_active) continue;
+        scheduleRecurringNotification(
+          item.id,
+          item.label,
+          item.next_due_date,
+          item.notification_time ?? '09:00',
+        );
+      }
+    })();
+  }, [listRecurring]);
 
   return (
     <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>

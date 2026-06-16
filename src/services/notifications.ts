@@ -51,14 +51,22 @@ export async function scheduleRecurringNotification(
   if (!Notifications) return null;
   try {
     const [hours, minutes] = notificationTime.split(':').map(Number);
-    const fireDate = new Date(nextDueDate + 'T' + notificationTime + ':00');
-    if (fireDate.getTime() <= Date.now()) return null;
+    let fireDate = new Date(nextDueDate + 'T' + notificationTime + ':00');
+
+    if (fireDate.getTime() <= Date.now()) {
+      fireDate = new Date();
+      fireDate.setHours(hours, minutes, 0, 0);
+      if (fireDate.getTime() <= Date.now()) {
+        fireDate.setDate(fireDate.getDate() + 1);
+      }
+    }
 
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Recurring Transaction Due',
         body: `${label} is due today`,
         data: { recurringId },
+        ...(Platform.OS === 'android' ? { channelId: 'recurring' } : {}),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -86,6 +94,20 @@ export async function cancelAllRecurring(): Promise<void> {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     for (const n of scheduled) {
       if (n.content.data?.recurringId !== undefined) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    }
+  } catch {}
+}
+
+export async function cancelNotificationForRecurringId(
+  recurringId: number,
+): Promise<void> {
+  if (!Notifications) return;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of scheduled) {
+      if (n.content.data?.recurringId === recurringId) {
         await Notifications.cancelScheduledNotificationAsync(n.identifier);
       }
     }

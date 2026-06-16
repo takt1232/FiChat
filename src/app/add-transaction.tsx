@@ -19,6 +19,7 @@ import { Card } from '@/components/card';
 import { PickerModal, PickerOption } from '@/components/picker-modal';
 import { Spacing, Radii } from '@/constants/theme';
 import { formatDate, computeNextDate } from '@/constants/format';
+import { scheduleRecurringNotification } from '@/services/notifications';
 import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -60,6 +61,8 @@ export default function AddTransactionScreen() {
     day_of_month: number | null;
     notification_hour: number;
     notification_minute: number;
+    notification_time: string;
+    label: string;
   } | null>(null);
 
   useState(() => {
@@ -87,6 +90,8 @@ export default function AddTransactionScreen() {
           day_of_month: r.day_of_month,
           notification_hour: parseInt(h, 10),
           notification_minute: parseInt(m, 10),
+          notification_time: r.notification_time ?? '09:00',
+          label: r.label,
         });
       });
     }, [recurringId, getRecurring]),
@@ -142,6 +147,12 @@ export default function AddTransactionScreen() {
         );
         if (nextDate) {
           await updateRecurring(parseInt(recurringId, 10), { next_due_date: nextDate });
+          scheduleRecurringNotification(
+            parseInt(recurringId, 10),
+            recurringConfig.label,
+            nextDate,
+            recurringConfig.notification_time,
+          );
         }
       }
 

@@ -7,6 +7,7 @@ import { Card } from '@/components/card';
 import { AmountDisplay } from '@/components/amount-display';
 import { Spacing, Radii } from '@/constants/theme';
 import { formatDate, computeNextDate } from '@/constants/format';
+import { scheduleRecurringNotification, cancelNotificationForRecurringId } from '@/services/notifications';
 import { useTheme } from '@/hooks/use-theme';
 import { RecurringRow, useRecurring } from '@/hooks/use-recurring';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -34,8 +35,20 @@ export default function EditRecurringScreen() {
 
   const handleToggle = useCallback(async () => {
     if (!recurring) return;
-    await update(parseInt(id, 10), { is_active: recurring.is_active ? 0 : 1 });
-    setRecurring({ ...recurring, is_active: recurring.is_active ? 0 : 1 });
+    const newActive = recurring.is_active ? 0 : 1;
+    await update(parseInt(id, 10), { is_active: newActive });
+    setRecurring({ ...recurring, is_active: newActive });
+
+    if (newActive) {
+      scheduleRecurringNotification(
+        parseInt(id, 10),
+        recurring.label,
+        recurring.next_due_date,
+        recurring.notification_time ?? '09:00',
+      );
+    } else {
+      cancelNotificationForRecurringId(parseInt(id, 10));
+    }
   }, [id, recurring, update]);
 
   const handleDelete = useCallback(() => {
@@ -44,6 +57,7 @@ export default function EditRecurringScreen() {
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
+          await cancelNotificationForRecurringId(parseInt(id, 10));
           await remove(parseInt(id, 10));
           router.back();
         },
@@ -77,6 +91,12 @@ export default function EditRecurringScreen() {
       });
       await update(parseInt(id, 10), { next_due_date: nextDate });
       setRecurring({ ...recurring, next_due_date: nextDate });
+      scheduleRecurringNotification(
+        parseInt(id, 10),
+        recurring.label,
+        nextDate,
+        recurring.notification_time ?? '09:00',
+      );
       Alert.alert('Done', 'Transaction saved and next due date advanced.');
     } catch {
       Alert.alert('Error', 'Something went wrong.');
