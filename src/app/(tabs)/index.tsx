@@ -3,6 +3,7 @@ import { AmountDisplay } from "@/components/amount-display";
 import { Card } from "@/components/card";
 import { GoalCard } from "@/components/goal-card";
 import { Header } from "@/components/header";
+import { RecurringCard } from "@/components/recurring-card";
 import { SectionHeader } from "@/components/section-header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -10,10 +11,9 @@ import { TransactionItem } from "@/components/transaction-item";
 import { BottomTabInset, Spacing } from "@/constants/theme";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useGoals } from "@/hooks/use-goals";
+import { RecurringRow, useRecurring } from "@/hooks/use-recurring";
 import { useTheme } from "@/hooks/use-theme";
 import { TransactionRow, useTransactions } from "@/hooks/use-transactions";
-import { RecurringCard } from "@/components/recurring-card";
-import { RecurringRow, useRecurring } from "@/hooks/use-recurring";
 import { Account, Goal } from "@/types";
 import { router, useFocusEffect } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -44,7 +44,14 @@ export default function DashboardScreen() {
     setRecentTx(tx);
     setGoals(await listGoals());
     setRecurrings(await listRecurring());
-  }, [totalBalance, listAccounts, listRecent, getMonthlySummary, listGoals, listRecurring]);
+  }, [
+    totalBalance,
+    listAccounts,
+    listRecent,
+    getMonthlySummary,
+    listGoals,
+    listRecurring,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -95,6 +102,8 @@ export default function DashboardScreen() {
               style={[
                 styles.actionBtn,
                 { backgroundColor: theme.income + "20" },
+                { display: "flex" },
+                { gap: 8 },
               ]}
               onPress={() => router.push("/add-income")}
             >
@@ -103,17 +112,16 @@ export default function DashboardScreen() {
                 tintColor={theme.income}
                 size={14}
               />
-              <ThemedText
-                type="smallBold"
-                style={{ color: theme.income }}
-              >
-                + Income
+              <ThemedText type="smallBold" style={{ color: theme.income }}>
+                Income
               </ThemedText>
             </Pressable>
             <Pressable
               style={[
                 styles.actionBtn,
                 { backgroundColor: theme.expense + "20" },
+                { display: "flex" },
+                { gap: 8 },
               ]}
               onPress={() => router.push("/add-expense")}
             >
@@ -122,11 +130,8 @@ export default function DashboardScreen() {
                 tintColor={theme.expense}
                 size={14}
               />
-              <ThemedText
-                type="smallBold"
-                style={{ color: theme.expense }}
-              >
-                + Expense
+              <ThemedText type="smallBold" style={{ color: theme.expense }}>
+                Expense
               </ThemedText>
             </Pressable>
             <Pressable
