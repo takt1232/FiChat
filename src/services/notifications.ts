@@ -4,8 +4,8 @@ let Notifications: any = null;
 
 try {
   Notifications = require('expo-notifications');
-} catch {
-  // expo-notifications not available in Expo Go
+} catch (e) {
+  console.warn('expo-notifications failed to load:', e);
 }
 
 if (Notifications) {
@@ -42,6 +42,27 @@ export async function requestPermissions(): Promise<boolean> {
   }
 }
 
+export async function scheduleTestNotification(): Promise<string | null> {
+  if (!Notifications) return null;
+  try {
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Test Notification',
+        body: 'This is a test from Fichat',
+        data: { recurringId: 0 },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 5,
+      },
+    });
+    return id;
+  } catch (e) {
+    console.warn('scheduleTestNotification failed:', e);
+    return null;
+  }
+}
+
 export async function scheduleRecurringNotification(
   recurringId: number,
   label: string,
@@ -69,6 +90,20 @@ export async function scheduleRecurringNotification(
   } catch {
     return null;
   }
+}
+
+export async function cancelRecurringNotification(
+  recurringId: number,
+): Promise<void> {
+  if (!Notifications) return;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of scheduled) {
+      if (n.content.data?.recurringId === recurringId) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    }
+  } catch {}
 }
 
 export async function cancelScheduledNotification(

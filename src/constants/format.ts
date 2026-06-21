@@ -1,3 +1,10 @@
+function toLocalDateString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function formatDate(dateString: string): string {
   const date = new Date(dateString + "T00:00:00");
   return date.toLocaleDateString("en-US", {
@@ -20,7 +27,7 @@ export function computeNextDate(
     const next = new Date(now);
     next.setHours(hours, minutes, 0, 0);
     if (next <= now) next.setDate(next.getDate() + 1);
-    return next.toISOString().split('T')[0];
+    return toLocalDateString(next);
   }
 
   if (frequency === 'weekly') {
@@ -38,19 +45,19 @@ export function computeNextDate(
       const next = new Date(now);
       next.setDate(next.getDate() + diff);
       next.setHours(hours, minutes, 0, 0);
-      if (next > now) return next.toISOString().split('T')[0];
+      if (next > now) return toLocalDateString(next);
     }
     const next = new Date(now);
     next.setDate(next.getDate() + (7 - today + sorted[0]));
     next.setHours(hours, minutes, 0, 0);
-    return next.toISOString().split('T')[0];
+    return toLocalDateString(next);
   }
 
   if (frequency === 'monthly') {
     const day = Math.min(dayOfMonth || 1, 28);
     const next = new Date(now.getFullYear(), now.getMonth(), day, hours, minutes, 0, 0);
     if (next <= now) next.setMonth(next.getMonth() + 1);
-    return next.toISOString().split('T')[0];
+    return toLocalDateString(next);
   }
 
   return null;

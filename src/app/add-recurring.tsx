@@ -23,6 +23,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useCategories } from '@/hooks/use-categories';
 import { useRecurring } from '@/hooks/use-recurring';
+import { scheduleRecurringNotification } from '@/services/notifications';
 import { Account, Category, TransactionType, RecurringFrequency } from '@/types';
 
 const TX_TYPES: { key: TransactionType; label: string }[] = [
@@ -123,7 +124,7 @@ export default function AddRecurringScreen() {
 
     setSaving(true);
     try {
-      await create({
+      const newId = await create({
         label: label.trim(),
         type,
         amount: parsed,
@@ -134,16 +135,18 @@ export default function AddRecurringScreen() {
         frequency,
         day_of_week: daysOfWeekMask || null,
         next_due_date: nextDue,
-        notification_time: `${String(notificationHour).padStart(2, '0')}:${String(notificationMinute).padStart(2, '0')}`,
+        notification_time: timeStr,
         day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) || 1 : null,
       });
+
+      scheduleRecurringNotification(newId, label.trim(), nextDue, timeStr);
 
       router.back();
     } finally {
       setSaving(false);
     }
   }, [label, type, amount, frequency, selectedDays, dayOfMonth, notificationHour, notificationMinute,
-      categoryId, fromAccountId, toAccountId, note, create, daysOfWeekMask]);
+      categoryId, fromAccountId, toAccountId, note, create, daysOfWeekMask, timeStr]);
 
   const filteredCategories = categories.filter((c) => c.type === (type === 'transfer' ? 'expense' : type));
   const isExpense = type === 'expense';

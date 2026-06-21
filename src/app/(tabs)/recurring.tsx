@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -14,6 +14,7 @@ export default function RecurringScreen() {
   const theme = useTheme();
   const { list } = useRecurring();
   const [recurrings, setRecurrings] = useState<RecurringRow[]>([]);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,6 +38,49 @@ export default function RecurringScreen() {
             + New Recurring
           </ThemedText>
         </Pressable>
+
+        {!bannerDismissed && (
+          <View
+            style={[
+              styles.bannerCard,
+              { backgroundColor: theme.backgroundElement },
+            ]}
+          >
+            <View style={styles.bannerHeader}>
+              <View style={styles.bannerContent}>
+                <ThemedText type="smallBold">
+                  Notifications may not work when app is closed
+                </ThemedText>
+                <ThemedText
+                  type="small"
+                  style={[styles.bannerDesc, { color: theme.textSecondary }]}
+                >
+                  To receive reminders reliably, disable battery optimization
+                  for Fichat in system settings.
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={() => setBannerDismissed(true)}
+                hitSlop={8}
+              >
+                <ThemedText
+                  type="small"
+                  style={{ color: theme.textTertiary }}
+                >
+                  ✕
+                </ThemedText>
+              </Pressable>
+            </View>
+            <Pressable
+              style={[styles.bannerBtn, { backgroundColor: theme.accent }]}
+              onPress={() => Linking.openSettings()}
+            >
+              <ThemedText type="smallBold" style={styles.bannerBtnText}>
+                Open App Settings
+              </ThemedText>
+            </Pressable>
+          </View>
+        )}
 
         {recurrings.length === 0 ? (
           <View style={styles.empty}>
@@ -97,6 +141,31 @@ const styles = StyleSheet.create({
   addBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
+  },
+  bannerCard: {
+    borderRadius: 16,
+    padding: Spacing.three,
+    gap: Spacing.md,
+  },
+  bannerHeader: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  bannerContent: {
+    flex: 1,
+    gap: Spacing.two,
+  },
+  bannerDesc: {
+    lineHeight: 18,
+  },
+  bannerBtn: {
+    paddingVertical: Spacing.md,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+  bannerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
   },
   section: {
     gap: Spacing.md,

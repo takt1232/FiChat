@@ -10,6 +10,10 @@ import { formatDate, computeNextDate } from '@/constants/format';
 import { useTheme } from '@/hooks/use-theme';
 import { RecurringRow, useRecurring } from '@/hooks/use-recurring';
 import { useTransactions } from '@/hooks/use-transactions';
+import {
+  cancelRecurringNotification,
+  scheduleRecurringNotification,
+} from '@/services/notifications';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -34,8 +38,21 @@ export default function EditRecurringScreen() {
 
   const handleToggle = useCallback(async () => {
     if (!recurring) return;
-    await update(parseInt(id, 10), { is_active: recurring.is_active ? 0 : 1 });
-    setRecurring({ ...recurring, is_active: recurring.is_active ? 0 : 1 });
+    const wasActive = recurring.is_active;
+    const numericId = parseInt(id, 10);
+    await update(numericId, { is_active: wasActive ? 0 : 1 });
+    setRecurring({ ...recurring, is_active: wasActive ? 0 : 1 });
+
+    if (wasActive) {
+      await cancelRecurringNotification(numericId);
+    } else {
+      scheduleRecurringNotification(
+        numericId,
+        recurring.label,
+        recurring.next_due_date,
+        recurring.notification_time ?? '09:00',
+      );
+    }
   }, [id, recurring, update]);
 
   const handleDelete = useCallback(() => {
@@ -44,6 +61,7 @@ export default function EditRecurringScreen() {
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
+          await cancelRecurringNotification(parseInt(id, 10));
           await remove(parseInt(id, 10));
           router.back();
         },
@@ -53,13 +71,15 @@ export default function EditRecurringScreen() {
 
   const handlePayNow = useCallback(async () => {
     if (!recurring) return;
-    const [h = '9', m = '0'] = (recurring.notification_time ?? '09:00').split(':');
+    const numericId = parseInt(id, 10);
+    const notifTime = recurring.notification_time ?? '09:00';
+    const [h, m] = notifTime.split(':').map(Number);
     const nextDate = computeNextDate(
       recurring.frequency as 'daily' | 'weekly' | 'monthly',
       recurring.day_of_week,
       recurring.day_of_month,
-      parseInt(h, 10),
-      parseInt(m, 10),
+      h,
+      m,
     );
     if (!nextDate) {
       Alert.alert('Could not compute next due date');
@@ -75,8 +95,12 @@ export default function EditRecurringScreen() {
         from_account_id: recurring.from_account_id,
         to_account_id: recurring.to_account_id,
       });
-      await update(parseInt(id, 10), { next_due_date: nextDate });
+      await update(numericId, { next_due_date: nextDate });
       setRecurring({ ...recurring, next_due_date: nextDate });
+
+      await cancelRecurringNotification(numericId);
+      scheduleRecurringNotification(numericId, recurring.label, nextDate, notifTime);
+
       Alert.alert('Done', 'Transaction saved and next due date advanced.');
     } catch {
       Alert.alert('Error', 'Something went wrong.');
